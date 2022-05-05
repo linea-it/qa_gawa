@@ -19,12 +19,17 @@ hdu.close()
 for i in range(len(HPX_)):
     dX = (RA-(ra0_[i]))*np.cos(np.radians(dec0_[i]))
     dY = (DEC-(dec0_[i]))
-    radius = np.linspace(0., 2., 20)
-    L_radius = (np.exp(-radius/re_kick_arcmin[i]))
+    radius = np.linspace(0., 1., 40)
+    area_annulus = [np.pi * (j ** 2 - i **2) for i,j in zip(radius[0:-1], radius[1::])]
+
+    fit_profile = np.exp(-radius/re_kick_arcmin[i])
     ri = 60.*np.sqrt(((dX*np.cos(np.radians(pa_kick_[i]))-dY*np.sin(np.radians(pa_kick_[i])))/(1.-ell_kick_[i]))**2.+ (dX*np.sin(np.radians(pa_kick_[i]))+dY*np.cos(np.radians(pa_kick_[i])))**2.)
-    L = (np.exp(-ri/re_kick_[i]))
+    L = np.exp(-ri/re_kick_[i])
     print(re_kick_arcmin[i], ra0_[i], dec0_[i])
-    a = plt.hist(ri, bins=40, range=(0,2.))
-    plt.plot(radius, np.max(a[0]) * L_radius)
+    a = plt.hist(ri, bins=40, range=(0., 1.))
+    density = a[0][0:-1] / (area_annulus)
+    plt.plot(radius, np.max(a[0]) * fit_profile)
+    plt.yscale('log')
+    plt.xscale('log')
     plt.show()
 
