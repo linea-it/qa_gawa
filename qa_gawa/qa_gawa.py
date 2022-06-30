@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def plot_pure(arg_all, arg_conf, label, title, bins=20):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16,6))
     over = (max(np.max(arg_all), np.max(arg_conf)) - min(np.min(arg_all), np.min(arg_conf))) * 0.1
@@ -50,6 +51,7 @@ def plot_comp(arg, idxs, label, title):
     B = ax1.hist(arg, bins=20, range=(np.min(arg), np.max(arg)), histtype='step', \
                  color = "mediumblue", label='Simulated clusters')
     completeness = A[0] / B[0]
+    completeness[completeness >= 1.] = 1.
     ax1.set_xlabel(label)
     ax1.set_ylabel( '# Detected Clusters')
     ax1.legend()
