@@ -63,7 +63,7 @@ def read_real_cat(cat_DG = "catalogs/objects_in_ref.dat", cat_GC = "catalogs/Har
     return name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC
 
 
-def plots_ang_size(star_clusters_simulated, FeH_iso):
+def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     """Plots to analyze the simulated clusters."""
 
     cmap = mpl.cm.get_cmap("inferno")
@@ -75,8 +75,7 @@ def plots_ang_size(star_clusters_simulated, FeH_iso):
     
     name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
     
-    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, mass, dist = np.loadtxt(
-    star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
+    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, mass, dist = np.loadtxt(unmatch_file, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
     
     ang_size_DG = 60. * (180. / np.pi) * np.arctan(rhl_pc_DG / (1000. * dist_kpc_DG))
     ang_size = 60 * np.rad2deg(np.arctan(1.7 * r_exp / dist))
@@ -194,8 +193,8 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     PIX_sim, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA, DEC, R_EXP, ELL, PA, MASS, DIST = np.loadtxt(star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
 
     f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 5))
-    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim')
-    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0], color='darkred', label='Sim filt')
+    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.2)
+    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax1.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0], MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='olive', label='Undetected')
     ax1.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax1.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
@@ -214,8 +213,8 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax1.set_xscale("log")
     ax1.legend()
 
-    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim')
-    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0], color='darkred', label='Sim filt')
+    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.2)
+    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax2.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0], MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='olive', label='Undetected')
     ax2.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax2.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
@@ -239,8 +238,8 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax2.set_xlim([0.4, 4000])
     ax2.set_ylim([1, -14])
 
-    ax3.scatter(MASS, MAG_ABS_V, label='Sim', color='r')
-    ax3.scatter(MASS, MAG_ABS_V_CLEAN, label='Sim filt', color='darkred')
+    ax3.scatter(MASS, MAG_ABS_V, label='Sim', color='r', alpha=0.2)
+    ax3.scatter(MASS, MAG_ABS_V_CLEAN, label='Sim filt', color='darkred', alpha=0.2)
     ax3.scatter(MASS_un, MAG_ABS_V_CLEAN_un, label='Undetected', color='olive')
     for i, j in enumerate(MASS):
         if MAG_ABS_V[i] < 0.0:
@@ -270,16 +269,20 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
         RA_orig = data[ra_str]
         DEC_orig = data[dec_str]
         GC_orig = data['GC']
-        
-        half_size_plot_dec = 1.1 / 60.
+        st_line_arcsec = 10.
+        half_size_plot_dec = 7 * st_line_arcsec / 3600.
         half_size_plot_ra = half_size_plot_dec / np.cos(np.deg2rad(dec_cen[i]))
-
+        
         if len(RA_orig[(RA_orig < ra_cen[i] + half_size_plot_ra) & (RA_orig > ra_cen[i] - half_size_plot_ra) & (DEC_orig < dec_cen[i] + half_size_plot_dec) & (DEC_orig > dec_cen[i] - half_size_plot_dec)]) > 10.:
             
             fig, ax = plt.subplots(1, 3, figsize=(18, 6), dpi=150)
   
             ax[1].set_yticks([])
             ax[2].set_yticks([])
+
+            st_line_arcsec = 10.
+            half_size_plot_dec = 7 * st_line_arcsec / 3600.
+            half_size_plot_ra = half_size_plot_dec / np.cos(np.deg2rad(dec_cen[i]))
 
             data = fits.getdata(star_cats_path + '/' + str(int(PIX_sim_un[i])) + '.fits')
             RA = data[ra_str]
@@ -298,9 +301,12 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k', s=100, marker='+', label='Cluster center')
             ax[col].set_xlabel('RA (deg)')
             ax[col].set_ylabel('DEC (deg)')
+            ax[col].text(ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), dec_cen[i] - 0.96 * half_size_plot_dec, '{:d} arcsec'.format(int(st_line_arcsec)), fontsize=8.)
+            ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
             
             col = 1
-            half_size_plot_dec = 5.5 / 60.
+            st_line_arcsec = 20.
+            half_size_plot_dec = 7 * st_line_arcsec / 3600.
             half_size_plot_ra = half_size_plot_dec / np.cos(np.deg2rad(dec_cen[i]))
             ax[col].scatter(RA_orig[(GC_orig == 0)], DEC_orig[(GC_orig == 0)], edgecolor='b', color='None',     s=20, label='MW stars')
             ax[col].scatter(
@@ -313,10 +319,12 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             ax[col].legend(loc=3)
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k', s=100, marker='+', label='Cluster center')
             ax[col].set_xlabel('RA (deg)')
-            ax[col].set_ylabel('DEC (deg)')
+            ax[col].text(ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), dec_cen[i] - 0.96 * half_size_plot_dec, '{:d} arcsec'.format(int(st_line_arcsec)), fontsize=8.)
+            ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
 
             col = 2
-            half_size_plot_dec = 10. / 60.
+            st_line_arcsec = 30.
+            half_size_plot_dec = 7 * st_line_arcsec / 3600.
             half_size_plot_ra = half_size_plot_dec / np.cos(np.deg2rad(dec_cen[i]))
             ax[col].scatter(RA_orig[(GC_orig == 0)], DEC_orig[(GC_orig == 0)], edgecolor='b', color='None',         s=20, label='MW stars')
             ax[col].scatter(
@@ -329,7 +337,9 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             ax[col].legend(loc=3)
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k', s=100, marker='+', label='Cluster center')
             ax[col].set_xlabel('RA (deg)')
-            ax[col].set_ylabel('DEC (deg)')
+            ax[col].text(ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), dec_cen[i] - 0.96 * half_size_plot_dec, '{:d} arcsec'.format(int(st_line_arcsec)), fontsize=8.)
+            ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
+
 
             plt.subplots_adjust(wspace=0, hspace=0)
             # plt.savefig(output_dir + '/clusters_with_and_without_crowded_stars.png')
@@ -358,6 +368,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     
     Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
 
+    name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
+    mM_DG = 5 * np.log10(100*dist_kpc_DG)
+
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
     
     mM_sim = 5. * np.log10(dist_sim) - 5.
@@ -365,6 +378,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
         
     cond_sim = (mM_sim > 10.)&(mM_sim < 15.)
     cond_det = (mM_det > 10.)&(mM_det < 15.)
+    cond_DG = (mM_DG > 10.)&(mM_DG < 15.)
+    cond_GC = (mM_GC > 10.)&(mM_GC < 15.)
+
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                         np.log10(radius_det[cond_det]))
     ax1.set_title(r'10<$(m-M)_0$<15')
@@ -375,9 +391,21 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax1.grid(True, lw=0.2)
     im1 = ax1.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                 vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
+    ax1.scatter(Mv_GC[cond_GC], np.log10(rhl_pc_GC[cond_GC]), marker='x', color='k')
+    ax1.scatter(Mv_DG[cond_DG], np.log10(rhl_pc_DG[cond_DG]), marker='x', color='b')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax1.annotate(name_DG[i], (Mv_DG[i], np.log10(rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax1.annotate(name_GC[i], (Mv_GC[i], np.log10(rhl_pc_GC[i])), color='darkmagenta')
+
 
     cond_sim = (mM_sim > 15.)&(mM_sim < 20.)
     cond_det = (mM_det > 15.)&(mM_det < 20.)
+    cond_DG = (mM_DG > 15.)&(mM_DG < 20.)
+    cond_GC = (mM_GC > 15.)&(mM_GC < 20.)
+
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                         np.log10(radius_det[cond_det]))
     ax2.set_title(r'15<$(m-M)_0$<20')
@@ -388,9 +416,20 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax2.grid(True, lw=0.2)
     im2 = ax2.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                 vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
+    ax2.scatter(Mv_GC[cond_GC], np.log10(rhl_pc_GC[cond_GC]), marker='x', color='k')
+    ax2.scatter(Mv_DG[cond_DG], np.log10(rhl_pc_DG[cond_DG]), marker='x', color='b')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax2.annotate(name_DG[i], (Mv_DG[i], np.log10(rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax2.annotate(name_GC[i], (Mv_GC[i], np.log10(rhl_pc_GC[i])), color='darkmagenta')
 
     cond_sim = (mM_sim > 20.)&(mM_sim < 25.)
     cond_det = (mM_det > 20.)&(mM_det < 25.)
+    cond_DG = (mM_DG > 20.)&(mM_DG < 25.)
+    cond_GC = (mM_GC > 20.)&(mM_GC < 25.)
+
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                         np.log10(radius_det[cond_det]))
     ax3.set_title(r'20<$(m-M)_0$<25')
@@ -402,8 +441,19 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     im3 = ax3.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                 vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
 
+    ax3.scatter(Mv_GC[cond_GC], np.log10(rhl_pc_GC[cond_GC]), marker='x', color='k')
+    ax3.scatter(Mv_DG[cond_DG], np.log10(rhl_pc_DG[cond_DG]), marker='x', color='b')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax3.annotate(name_DG[i], (Mv_DG[i], np.log10(rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax3.annotate(name_GC[i], (Mv_GC[i], np.log10(rhl_pc_GC[i])), color='darkmagenta')
     cond_sim = (mM_sim > 25.)&(mM_sim < 30.)
     cond_det = (mM_det > 25.)&(mM_det < 30.)
+    cond_DG = (mM_DG > 25.)&(mM_DG < 30.)
+    cond_GC = (mM_GC > 25.)&(mM_GC < 30.)
+
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                         np.log10(radius_det[cond_det]))
     ax4.set_title(r'25<$(m-M)_0$<30')
@@ -414,6 +464,14 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax4.grid(True, lw=0.2)
     im4 = ax4.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                 vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
+    ax4.scatter(Mv_GC[cond_GC], np.log10(rhl_pc_GC[cond_GC]), marker='x', color='k')
+    ax4.scatter(Mv_DG[cond_DG], np.log10(rhl_pc_DG[cond_DG]), marker='x', color='b')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax4.annotate(name_DG[i], (Mv_DG[i], np.log10(rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax4.annotate(name_GC[i], (Mv_GC[i], np.log10(rhl_pc_GC[i])), color='darkmagenta')
 
 
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
