@@ -1,10 +1,96 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.fits as fits
+from astropy.io.fits import getdata
 import matplotlib as mpl
 from astropy import units as u
 import astropy.coordinates as coord
+from astropy.coordinates import SkyCoord, match_coordinates_sky
+from astropy.io import ascii
 # from astropy.coordinates import SkyCoord
+
+def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin):
+
+    data_det = getdata(det_file)
+    ra_det = data_det["ra"]
+    dec_det = data_det["dec"]
+
+    data_sim = ascii.read(sim_file)
+    ra_sim = data_sim["9-ra"]
+    dec_sim = data_sim["10-dec"]
+
+    C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
+    C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
+
+    idx_sim, idx_det, d2d, d3d = C_det.search_around_sky(C_sim, dist2match_arcmin*u.arcmin)
+
+    idx_det_outliers = [i for i in range(len(data_det)) if i not in idx_det]
+
+    file_match = open(match_file, 'w')
+    print('#0-peak_id 1-ra 2-dec 3-iobj 4-jobj 5-dist_init_kpc 6-dist_err_kpc 7-dist_min_kpc 8-dist_max_kpc 9-coverfrac 10-coverfrac_bkg 11-wradius_arcmin 12-snr 13-Naper 14-Naper_tot 15-NWaper_tot 16-Naper_bkg 17-icyl 18-tile 19-slice 20-id_in_tile 21-id 22-HPX64 23-N 24-MV 25-SNR 26-N_f 27-MV_f 28-SNR_f 29-L 30-B 31-ra 32-dec 33-r_exp 34-ell 35-pa 36-mass 37-dist', file=file_match)
+    
+    print(ra_det[idx_det[1]], ra_sim[idx_sim[1]])
+
+    for i,j in zip(idx_sim, idx_det):
+        print(*data_det[:][j], *data_sim[i], sep=' ', file=file_match, end='\n')
+
+    for i in (idx_det_outliers):
+        print(*data_det[i], ' -99.999 ' * len(data_sim[1]), sep=' ', file=file_match, end='\n')
+
+    file_match.close()
+
+    idx_not_det = [i for i in range(len(data_sim)) if i not in idx_sim]
+
+    file_unmatch = open(unmatch_file, 'w')
+    print('#0-HPX64 1-N 2-MV 3-SNR 4-N_f 5-MV_f 6-SNR_f 7-L 8-B 9-ra 10-dec 11-r_exp 12-ell 13-pa 14-mass 15-dist', file=file_unmatch)
+
+    for i in idx_not_det:
+        print(*data_sim[i], sep=' ', file=file_unmatch, end='\n')
+    file_unmatch.close()
+
+
+def reading_data(input_detection_path, input_simulation_path):
+    det_file = input_detection_path + '/clusters.fits'
+    data_det = getdata(det_file)
+
+    f_sim = open(input_simulation_path + '/star_clusters_simulated.dat', 'r')
+    data_sim = f_sim.readlines()[1:]
+
+    file_sim = input_simulation_path + '/star_clusters_simulated.dat'
+    ra_sim, dec_sim, SNR_sim_all = np.loadtxt(file_sim, usecols=(9, 10, 6), unpack=True)
+    
+    return data_sim, data_det, ra_det, dec_det, ra_sim, dec_sim, SNR_sim_all, mM_slices
+    
+    
+def plot_masks(input_detection_path, mask_file, param2):
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+
+    gr, g = np.loadtxt(mask_file, usecols=(0, 1), unpack=True)
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(10,6))
+    for i in range(len(mM_slices)):
+        ax1.plot(gr, g + mM_slices[i], label='m-M={:.2f}'.format(mM_slices[i]))
+    ax1.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'], param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+    ax1.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'], param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+    ax1.set_xlabel(r'$g_0-r_0$')
+    ax1.set_ylabel(r'$g_0$')
+    ax1.set_title('Masks applied to detection')
+    ax1.legend()
+    plt.show()
+
+def recursive_print_dict( d, indent = 0 ):
+    for k, v in d.items():
+        if isinstance(v, dict):
+            print("    " * indent, f"{k}:")
+            recursive_print_dict(v, indent+1)
+        else:
+            print("    " * indent, f"{k}:{v}")
 
 
 def radec2GCdist(ra, dec, dist_kpc):
