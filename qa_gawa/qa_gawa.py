@@ -7,7 +7,472 @@ from astropy import units as u
 import astropy.coordinates as coord
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 from astropy.io import ascii
-# from astropy.coordinates import SkyCoord
+import tabulate
+
+
+def undet_cmds(unmatch_file, mask_file, input_simulation_path, input_detection_path, param2):
+    HPX64, N, MV, SNR, N_f, MV_f, SNR_f, L, B, ra, dec, r_exp, ell, pa, mass, dist = np.loadtxt(unmatch_file, unpack=True)
+
+    n_col = 4
+    n_row = int(len(N) / n_col) + 1
+
+    gr, g = np.loadtxt(mask_file, usecols=(0, 1), unpack=True)
+
+    fig, axs = plt.subplots(n_row, n_col, figsize=(16, 4 * n_row), dpi=150.)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    for ax, HPX in zip(axs.flat, HPX64):
+        ax.set_title('HPX: {:d}'.format(int(HPX)))
+        data = fits.getdata(input_simulation_path + '/hpx_cats_clean/' + str(int(HPX)) + '.fits')
+        MAGG = data['mag_g_with_err']
+        MAGR = data['mag_r_with_err']
+        GC = data['GC']
+        ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0], color='lightgrey', label='MW', s=0.1)
+        ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1], color='r', label='Cluster', s=0.4)
+    
+        for i in range(len(mM_slices)):
+            ax.plot(gr, g + mM_slices[i], label='m-M={:.2f}'.format(mM_slices[i]), lw=1)
+        ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'], param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+        ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'], param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+        ax.set_xlabel(r'$g_0-r_0$')
+        ax.set_ylabel(r'$g_0$')
+        # ax.legend()
+    # axs[n_row, n_col].legend()
+    plt.tight_layout()                      
+    plt.show()
+
+
+def print_undet_table(unmatch_file):
+    with open(unmatch_file) as f:
+        first_line = f.readline()
+
+    HPX64 = np.loadtxt(unmatch_file, usecols=(0), dtype=int, unpack=True)
+
+    table = tabulate.tabulate(np.loadtxt(unmatch_file),
+                              tablefmt='html',
+                              headers=(first_line[1:].split()))
+
+    print('Total of clusters not detected: {:d}\n'.format(len(HPX64)))
+
+    return table
+
+def plot_pure_SNR(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    plot_pure(SNR_det, SNR_det[true_positive], 'Signal-to-noise ratio (detection)', 'Purity wrt Signal-to-Noise Ratio')
+
+
+def plot_pure_mM(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    # 0-peak_id 1-ra 2-dec 3-iobj 4-jobj 5-dist_init_kpc 6-dist_err_kpc 7-dist_min_kpc 8-dist_max_kpc 9-coverfrac
+    # 10-coverfrac_bkg 11-wradius_arcmin 12-snr 13-Naper 14-Naper_tot 15-NWaper_tot 16-Naper_bkg 17-icyl 18-tile 19-slice
+    # 20-id_in_tile 21-id 22-HPX64 23-N 24-MV 25-SNR 26-N_f 27-MV_f 28-SNR_f 29-L
+    # 30-B 31-ra 32-dec 33-r_exp 34-ell 35-pa 36-mass 37-dist'
+    dist_kpc_det, disterr_kpc_det = np.loadtxt(match_file, usecols=(5, 6), unpack=True)
+
+    m_M_det = 5 * np.log10(dist_kpc_det) + 10.
+
+    plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module', 'Purity wrt Distance Modulus (detection)', bins_mM)
+
+
+def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    SNR_range = np.arange(np.min(SNR_det[true_positive]), np.max(SNR_det[true_positive]), 1.)
+
+    comp_wrt_SNR = np.zeros(len(SNR_range))
+    pur_wrt_SNR = np.zeros(len(SNR_range))
+
+    for i, j in enumerate(SNR_range):
+        comp_wrt_SNR[i] = len(SNR_det[(true_positive)&(SNR_det > j)]) / len(ra_sim)
+        pur_wrt_SNR[i] = len(SNR_det[(true_positive)&(SNR_det > j)]) / len(SNR_det[(SNR_det > j)])
+
+    fig, ax = plt.subplots(figsize=(16, 10))
+    ax.plot(SNR_range, comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    ax.plot(SNR_range, pur_wrt_SNR, label='Purity', color='b', lw=2)
+    ax.set_xlim([0., 1.1* np.max(SNR_range)])
+    ax.set_ylim([0, 1.1])
+    ax.set_title('Purity/Completeness versus SNR')
+    ax.set_xlabel('SNR from detections')
+    ax.set_ylabel('Completeness / Purity')
+    ax.legend()
+    plt.show()
+
+    fig, ax = plt.subplots(figsize=(16, 10))
+    ax.plot(SNR_range, comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    ax.plot(SNR_range, pur_wrt_SNR, label='Purity', color='b', lw=2)
+    ax.set_xlim([3., 10.])
+    ax.set_ylim([0.9, 1.05])
+    ax.set_title('Purity/Completeness versus SNR')
+    ax.set_xlabel('SNR from detections')
+    ax.set_ylabel('Completeness / Purity')
+    ax.legend()
+    plt.show()
+
+
+def plot_comp_all(input_detection_path, input_simulation_path, match_file, unmatch_file, idx_sim):
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    ipix, Nstar, M_V, SNR, L, B, RA_pix, DEC_pix, r_exp_pc, ell, pa, mass, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
+                                                                                         usecols=(0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                                                                                         unpack=True)
+
+    plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
+    plot_comp(dist, idx_sim, 'r (pc) simulated', 'Completeness wrt Distance (simulations)')
+    plot_comp(SNR, idx_sim, 'SNR', 'Completeness wrt Signal to Noise Ratio')
+    mM_sim = 5 * np.log10(dist) - 5.
+
+    plot_comp(mM_sim, idx_sim, 'm-M', 'Distance modulus')
+    exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(match_file, usecols=(33, 27, 37), unpack=True)
+
+    full_completeness_distances(M_V, M_V_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
+
+
+def SNR_SNR(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    half_light_radius_arcmin = 1.7 * 60. * np.rad2deg(np.arctan(exp_rad_sim / dist_sim))
+
+    fig = plt.figure(figsize=(16, 10))
+    plt.scatter(SNR_sim, SNR_det)
+    plt.plot(np.linspace(0., 1.1 * max(np.max(SNR_sim),np.max(SNR_det)), 4),
+            np.linspace(0., 1.1 * max(np.max(SNR_sim),np.max(SNR_det)), 4), color = 'r')
+    plt.xlabel('SNR (simulations)')
+    plt.ylabel('SNR (detections)')
+    plt.xlim([0.1, 1.05 * max(np.max(SNR_sim),np.max(SNR_det))])
+    plt.ylim([0.1, 1.05 * max(np.max(SNR_sim),np.max(SNR_det))])
+    plt.show()
+
+
+def dist_dist(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+
+    dist_sim_kpc = dist_sim / 1000
+    fig = plt.figure(figsize=(16, 10))
+    plt.errorbar(dist_sim_kpc[true_positive], dist_init_kpc_det[true_positive], yerr=dist_err_kpc_det[true_positive], xerr=None,  fmt='o', c='k')
+    plt.plot(np.linspace(0.8 * min(np.min(dist_sim_kpc),np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc),np.max(dist_init_kpc_det)), 4),
+            np.linspace(0.8 * min(np.min(dist_sim_kpc),np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc),np.max(dist_init_kpc_det)), 4), color = 'r')
+    plt.xlim([0.8 * min(np.min(dist_sim_kpc),np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc),np.max(dist_init_kpc_det))])
+    plt.ylim([0.8 * min(np.min(dist_sim_kpc),np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc),np.max(dist_init_kpc_det))])
+    plt.title('Comparing recovery distances')
+    plt.xlabel('Distances (kpc) from simulations')
+    plt.ylabel('Distances (kpc) from detections')
+    plt.show()
+
+
+def det_sky(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    cm = plt.cm.get_cmap('copper_r')
+
+    fig = plt.figure(figsize=(16, 10))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+            label='Simulations: ({:d})'.format(len(ra_sim)))
+    sc = plt.scatter(ra_det[true_positive], dec_det[true_positive], c=SNR_det[true_positive], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+                     cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
+    plt.scatter(ra_det[false_positive], dec_det[false_positive], c=SNR_det[false_positive], s=200.0, cmap=cm,
+                lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[false_positive])))
+    plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
+                lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
+    plt.colorbar(sc,label = 'SNR detection')
+    plt.xlim(np.max(ra_sim)+0.5, np.min(ra_sim)-0.5)
+    plt.ylim(np.min(dec_sim)-0.5, np.max(dec_sim)+1.0)
+    plt.xlabel('RA')
+    plt.ylabel('DEC')
+    plt.title('Spatial distribution of clusters (SN > 3.)')
+    plt.legend(loc=1)
+    plt.show()
+    
+    fig = plt.figure(figsize=(16, 10))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+                label='Simulations: ({:d})'.format(len(ra_sim)))
+    cond = (true_positive)&(SNR_det > 5)
+    sc = plt.scatter(ra_det[(true_positive)&(cond)], dec_det[(true_positive)&(cond)],
+                     c=SNR_det[(true_positive)&(cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+                     cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
+    plt.scatter(ra_det[(false_positive)&(cond)], dec_det[(false_positive)&(cond)],
+                c=SNR_det[(false_positive)&(cond)], s=200.0, cmap=cm,
+                lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[(false_positive)&(cond)])))
+    plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
+                lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
+    plt.colorbar(sc,label = 'SNR detection')
+    plt.xlim(np.max(ra_sim)+0.5, np.min(ra_sim)-0.5)
+    plt.ylim(np.min(dec_sim)-0.5, np.max(dec_sim)+1.0)
+    plt.xlabel('RA')
+    plt.ylabel('DEC')
+    plt.title('Spatial distribution of clusters with SNR > 5')
+    plt.legend(loc=1)
+    plt.show()
+    
+    fig = plt.figure(figsize=(16, 10))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+                label='Simulations: ({:d})'.format(len(ra_sim)))
+    cond = (true_positive)&(SNR_det > 10)
+    sc = plt.scatter(ra_det[(true_positive)&(cond)], dec_det[(true_positive)&(cond)],
+                     c=SNR_det[(true_positive)&(cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+                     cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
+    plt.scatter(ra_det[(false_positive)&(cond)], dec_det[(false_positive)&(cond)],
+                c=SNR_det[(false_positive)&(cond)], s=200.0, cmap=cm,
+                lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[(false_positive)&(cond)])))
+    plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
+                lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
+    plt.colorbar(sc, label = 'SNR detection')
+    plt.xlim(np.max(ra_sim) + 0.5, np.min(ra_sim)-0.5)
+    plt.ylim(np.min(dec_sim) - 0.5, np.max(dec_sim)+1.0)
+    plt.xlabel('RA')
+    plt.ylabel('DEC')
+    plt.title('Spatial distribution of clusters with SNR > 10')
+    plt.legend(loc=1)
+    plt.show()
+
+def dist_hist(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(10,6))
+    ax1.hist(dist_init_kpc_det, bins=20, range=(np.min(dist_init_kpc_det) - 1., np.max(dist_init_kpc_det) + 1),
+                                                histtype='step', color = "r", lw=4, label='Distances (kpc)')
+    ax1.hist(dist_init_kpc_det[true_positive], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
+                                                histtype='step', color = "mediumblue", lw=2,
+                                                label='Distances [kpc] (true positives)')
+    ax1.hist(dist_init_kpc_det[false_positive], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
+                                                histtype='step', color = "maroon", lw=3,
+                                                label='Distances [kpc] (false positives)')
+    ax1.set_xlabel('Distances [kpc]')
+    ax1.set_ylabel('# Clusters')
+    # ax1.set_yscale('log')
+    ax1.legend()
+
+    fig.suptitle('Distances Histogram (detections)')
+    plt.show()
+    fig.suptitle('SNR Histogram (detections)')
+    plt.show()
+
+
+def SNR_hist(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(10,6))
+    ax1.hist(SNR_det, bins=20, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step', \
+                 color = "r", lw=4, label='SNR')
+    ax1.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', \
+                 color = "mediumblue", lw=2, label='SNR (true positives)')
+    ax1.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', \
+                 color = "maroon", lw=3, label='SNR (false positives)')
+    ax1.set_xlabel('SNR')
+    ax1.set_ylabel('# Clusters')
+    ax1.set_yscale('log')
+    ax1.legend()
+
+    fig.suptitle('SNR Histogram (detections)')
+    plt.show()
+
+def write_det_numbers(input_detection_path, input_simulation_path, match_file, unmatch_file):
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+    SNR_det, HPX64, M_V_sim_det, SNR_sim, exp_rad_sim, dist_sim = np.loadtxt(match_file,
+                                             usecols=(1, 2, 5, 6, 11, 12, 22, 24, 28, 33, 37), unpack=True)
+
+    SNR_sim_all, ra_sim, dec_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
+
+    ra_det, dec_det, dist_init_kpc_det, dist_err_kpc_det, wrad_arcmin_det, \
+
+    SNR_sim_undet, ra_undet, dec_undet = np.loadtxt(unmatch_file, usecols=(6, 9, 10), unpack=True)
+
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] + bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+    
+    true_positive = (SNR_sim > 0.)
+    false_positive = (SNR_sim <= 0.)
+
+    print('Total of clusters simulated: {:d}.'.format(len(ra_sim)))
+    print('Total of clusters detected: {:d} (True Positives).'.format(len(np.unique(HPX64[true_positive]))))
+    print('Minimum SNR detected: {:.4f}'.format(np.min(SNR_det)))
+    print('Total of clusters detected with SNR > 3: {:d}.'.format(len(np.unique(HPX64[(true_positive)&(SNR_det > 3.)]))))
+    print('Total of clusters detected with SNR > 5: {:d}.'.format(len(np.unique(HPX64[(true_positive)&(SNR_det > 5.)]))))
+    print('Total of clusters detected with SNR > 10: {:d}.'.format(len(np.unique(HPX64[(true_positive)&(SNR_det > 10.)]))))
+    print('Total of clusters undetected: {:d}.'.format(len(ra_undet)))
 
 def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin):
 
@@ -29,8 +494,6 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     file_match = open(match_file, 'w')
     print('#0-peak_id 1-ra 2-dec 3-iobj 4-jobj 5-dist_init_kpc 6-dist_err_kpc 7-dist_min_kpc 8-dist_max_kpc 9-coverfrac 10-coverfrac_bkg 11-wradius_arcmin 12-snr 13-Naper 14-Naper_tot 15-NWaper_tot 16-Naper_bkg 17-icyl 18-tile 19-slice 20-id_in_tile 21-id 22-HPX64 23-N 24-MV 25-SNR 26-N_f 27-MV_f 28-SNR_f 29-L 30-B 31-ra 32-dec 33-r_exp 34-ell 35-pa 36-mass 37-dist', file=file_match)
     
-    print(ra_det[idx_det[1]], ra_sim[idx_sim[1]])
-
     for i,j in zip(idx_sim, idx_det):
         print(*data_det[:][j], *data_sim[i], sep=' ', file=file_match, end='\n')
 
@@ -47,6 +510,7 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     for i in idx_not_det:
         print(*data_sim[i], sep=' ', file=file_unmatch, end='\n')
     file_unmatch.close()
+    return idx_sim, idx_det
 
 
 def reading_data(input_detection_path, input_simulation_path):
@@ -157,16 +621,20 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     cmap.set_bad("black")
     
     # TODO: Variaveis Instanciadas e não usadas
-    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, mass, dist = np.loadtxt(star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
+    hp_sample, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, mass, dist = np.loadtxt(star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
     
     name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
     
-    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, mass, dist = np.loadtxt(unmatch_file, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
+    hp_sample_un, NSTARS_un, MAG_ABS_V_un, NSTARS_CLEAN_un, MAG_ABS_V_CLEAN_un, RA_pix_un, DEC_pix_un, r_exp_un, ell_un, pa_un, mass_un, dist_un = np.loadtxt(unmatch_file, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15), unpack=True)
     
     ang_size_DG = 60. * (180. / np.pi) * np.arctan(rhl_pc_DG / (1000. * dist_kpc_DG))
     ang_size = 60 * np.rad2deg(np.arctan(1.7 * r_exp / dist))
     
     RHL_PC_SIM = 1.7 * r_exp
+
+    ang_size_un = 60 * np.rad2deg(np.arctan(1.7 * r_exp_un / dist_un))
+
+    RHL_PC_SIM_un = 1.7 * r_exp_un
 
     MW_center_distance_DG_kpc = radec2GCdist(ra_DG, dec_DG, dist_kpc_DG)
 
@@ -175,6 +643,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax1.hist(dist_kpc_DG, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='DG', color='b', alpha=0.5, histtype='stepfilled')
     ax1.hist(dist_kpc_GC, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='GC', color='k', alpha=0.5, lw=2, histtype='step')
     ax1.hist(dist / 1000, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='Sim', color='r', alpha=0.5)
+    ax1.hist(dist_un / 1000, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='Undet', color='olive')
     ax1.legend()
     ax1.set_xlabel("Distance (kpc)")
     ax1.set_ylabel("N objects")
@@ -184,6 +653,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax2.hist(dist_kpc_DG, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='DG', color='b', alpha=0.5, histtype='stepfilled')
     ax2.hist(dist_kpc_GC, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='GC', color='k', alpha=0.5, lw=2, histtype='step')
     ax2.hist(dist / 1000, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='Sim', color='r', alpha=0.5)
+    ax2.hist(dist_un / 1000, bins=np.linspace(0, 2. * np.max(dist) / 1000, 20), label='Undet', color='olive')
     ax2.legend()
     ax2.set_title('Histogram of distances (log scale)')
     ax2.set_xlabel("Distance (kpc)")
@@ -194,6 +664,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax3.hist(ang_size_DG, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='DG', color='b', alpha=0.5, histtype='stepfilled')
     ax3.hist(rhl_arcmin_GC, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='GC', color='k', alpha=0.5, lw=2, histtype='step')
     ax3.hist(ang_size, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='Sim', color='r', alpha=0.5)
+    ax3.hist(ang_size_un, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='Undet', color='olive')
     ax3.legend()
     ax3.set_xlim([np.min(ang_size) / 2, 2. * np.max(ang_size)])
     ax3.set_xlabel(r"$r_{1/2}$ (arcmin)")
@@ -203,6 +674,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax4.hist(ang_size_DG, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='DG', color='b', alpha=0.5, histtype='stepfilled')
     ax4.hist(rhl_arcmin_GC, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='GC', color='k', alpha=0.5, lw=2, histtype='step')
     ax4.hist(ang_size, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='Sim', color='r', alpha=0.5)
+    ax4.hist(ang_size_un, bins=np.linspace(np.min(ang_size) / 2, 2. * np.max(ang_size), 20), label='Undet', color='olive')
     ax4.legend()
     ax4.set_xlim([np.min(ang_size) / 2, 2. * np.max(ang_size)])
     ax4.set_yscale('log')
@@ -211,6 +683,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax4.set_title('Histogram of angular sizes (log scale)')
 
     ax5.scatter(dist / 1000, ang_size, label='Sim', color='r')
+    ax5.scatter(dist_un / 1000, ang_size_un, label='Undet', color='olive')
     ax5.scatter(dist_kpc_DG, ang_size_DG, label='DG', color='b')
     ax5.scatter(dist_kpc_GC, rhl_arcmin_GC, label='GC', color='k')
     ax5.set_xlabel("Distance (kpc)")
@@ -224,6 +697,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
             ax6.plot([mass[i], mass[i]], [NSTARS[i], NSTARS_CLEAN[i]], color='darkred', lw=0.2)
     ax6.scatter(mass, NSTARS, label='Sim', color='r')
     ax6.scatter(mass, NSTARS_CLEAN, label='Sim filt', color='darkred')
+    ax6.scatter(mass_un, NSTARS_CLEAN_un, label='Undet', color='olive')
     ax6.set_xlabel("MASS(MSun)")
     ax6.set_ylabel("N stars")
     ax6.legend()
@@ -233,6 +707,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax7.hist(Mv_GC, bins=20, range=(-16, 0.0), histtype="step", label="GC", color="k")
     ax7.hist(MAG_ABS_V, bins=20, range=(-16, 0.0), histtype="step", label="Sim", color="r", ls="--", alpha=0.5)
     ax7.hist(MAG_ABS_V_CLEAN, bins=20, range=(-16, 0.0), histtype="stepfilled", label="Sim filt", color="darkred", ls="--", alpha=0.5)
+    ax7.hist(MAG_ABS_V_CLEAN_un, bins=20, range=(-16, 0.0), histtype="stepfilled", label="Undet", color="olive", ls="--", lw=2)
     ax7.set_xlabel(r"$M_V$")
     ax7.set_ylabel("N")
     ax7.legend(loc=2)
@@ -241,6 +716,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax8.hist(rhl_pc_DG, bins=20, histtype="stepfilled", range=(10, 2400), label="DG", color="b", alpha=0.5)
     ax8.hist(rhl_pc_GC, bins=20, histtype="step", range=(10, 2400), label="GC", color="k")
     ax8.hist(RHL_PC_SIM, bins=20, histtype="stepfilled", range=(10, 2400), label="Sim", color="r", ls="--", alpha=0.5)
+    ax8.hist(RHL_PC_SIM_un, bins=20, histtype="stepfilled", range=(10, 2400), label="Undet", color="olive", ls="--", lw=2)
     ax8.set_xlabel(r"$r_{1/2}$[pc]")
     ax8.legend(loc=1)
     # ax8.set_xscale('log')
@@ -248,6 +724,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax8.set_title(r'Histogram of $r_{1/2}$ (parsecs)')
 
     ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V)), bins=20, range=(-3, 1.0), histtype="stepfilled", label="Sim", color="r", ls="--", alpha=0.5)
+    ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V_un)), bins=20, range=(-3, 1.0), histtype="stepfilled", label="Sim", color="olive", ls="--", lw=2)
     ax9.hist(FeH_DG, bins=20, range=(-3, 1.0), histtype="stepfilled", label="DG", color="b", alpha=0.5)
     ax9.hist(FeH_GC, bins=20, range=(-3, 1.0), histtype="step", label="GC", color="k")
     ax9.set_xlabel("[Fe/H]")
@@ -255,6 +732,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax9.set_title('Absolute Magnitude (V band) X Metalicity')
     
     ax10.scatter(dist / 1000, np.repeat(FeH_iso, len(dist)), label="Sim", color="r", marker="x", lw=1.0)
+    ax10.scatter(dist_un / 1000, np.repeat(FeH_iso, len(dist_un)), label="Undet", color="olive", marker="x", lw=2.0)
     ax10.scatter(MW_center_distance_DG_kpc, FeH_DG, label="DG", color="b")
     ax10.scatter(R_MW_GC, FeH_GC, label="GC", color="k")
     ax10.set_xlabel("Distance to the Galactic center (kpc)")
@@ -265,7 +743,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax10.set_title('Galactocentric distances X Metalicity')
 
     # plt.savefig(output_plots + '/hist_mass.png')
-    plt.suptitle("Physical features of 58 Dwarf Gal + 152 GC + " + str(len(hp_sample_un)) + " Simulations", fontsize=16)
+    plt.suptitle("Physical features of 58 Dwarf Gal + 152 GC + " + str(len(hp_sample)) + " Simulations + " + str(len(hp_sample_un)) + " Undetected", fontsize=16)
     f.tight_layout()
     plt.subplots_adjust(top=0.92)
     plt.show()
