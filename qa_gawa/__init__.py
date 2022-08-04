@@ -6,7 +6,6 @@ from qa_gawa.qa_gawa import (
     plots_ang_size,
     general_plots,
     recursive_print_dict,
-    reading_data,
     plot_masks,
     matching_sim_det,
     write_det_numbers,
