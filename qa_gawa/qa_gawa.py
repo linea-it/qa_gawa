@@ -92,7 +92,7 @@ def print_undet_table(unmatch_file):
     return table
 
 
-def plot_pure_SNR(match_file):
+def plot_pure_SNR(match_file, SNR_min):
     """This function plots the purity wrt SNR.
 
     Parameters
@@ -103,10 +103,14 @@ def plot_pure_SNR(match_file):
 
     SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
 
+    SNR_det = SNR_det[SNR_det > SNR_min]
+    SNR_sim = SNR_sim[SNR_det > SNR_min]
+
     true_positive = (SNR_sim > 0.)
 
     plot_pure(SNR_det, SNR_det[true_positive],
-              'Signal-to-noise ratio (detection)', 'Purity wrt Signal-to-Noise Ratio')
+              'Signal-to-noise ratio (detection)',
+              'Purity wrt SNR > {:.2f}'.format(SNR_min))
 
 
 def plot_pure_mM(input_detection_path, match_file):
@@ -689,7 +693,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax1.hist(dist / 1000, bins=np.linspace(0, 2. * np.max(dist) /
              1000, 20), label='Sim', color='r', alpha=0.5)
     ax1.hist(dist_un / 1000, bins=np.linspace(0, 2. *
-             np.max(dist) / 1000, 20), label='Undet', color='olive')
+             np.max(dist) / 1000, 20), label='Undet', color='darkgreen')
     ax1.legend()
     ax1.set_xlabel("Distance (kpc)")
     ax1.set_ylabel("N objects")
@@ -703,7 +707,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax2.hist(dist / 1000, bins=np.linspace(0, 2. * np.max(dist) /
              1000, 20), label='Sim', color='r', alpha=0.5)
     ax2.hist(dist_un / 1000, bins=np.linspace(0, 2. *
-             np.max(dist) / 1000, 20), label='Undet', color='olive')
+             np.max(dist) / 1000, 20), label='Undet', color='darkgreen')
     ax2.legend()
     ax2.set_title('Histogram of distances (log scale)')
     ax2.set_xlabel("Distance (kpc)")
@@ -718,7 +722,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax3.hist(ang_size, bins=np.linspace(np.min(ang_size) / 2, 2. *
              np.max(ang_size), 20), label='Sim', color='r', alpha=0.5)
     ax3.hist(ang_size_un, bins=np.linspace(np.min(ang_size) / 2,
-             2. * np.max(ang_size), 20), label='Undet', color='olive')
+             2. * np.max(ang_size), 20), label='Undet', color='darkgreen')
     ax3.legend()
     ax3.set_xlim([np.min(ang_size) / 2, 2. * np.max(ang_size)])
     ax3.set_xlabel(r"$r_{1/2}$ (arcmin)")
@@ -732,7 +736,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax4.hist(ang_size, bins=np.linspace(np.min(ang_size) / 2, 2. *
              np.max(ang_size), 20), label='Sim', color='r', alpha=0.5)
     ax4.hist(ang_size_un, bins=np.linspace(np.min(ang_size) / 2,
-             2. * np.max(ang_size), 20), label='Undet', color='olive')
+             2. * np.max(ang_size), 20), label='Undet', color='darkgreen')
     ax4.legend()
     ax4.set_xlim([np.min(ang_size) / 2, 2. * np.max(ang_size)])
     ax4.set_yscale('log')
@@ -741,7 +745,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax4.set_title('Histogram of angular sizes (log scale)')
 
     ax5.scatter(dist / 1000, ang_size, label='Sim', color='r')
-    ax5.scatter(dist_un / 1000, ang_size_un, label='Undet', color='olive')
+    ax5.scatter(dist_un / 1000, ang_size_un, label='Undet', color='darkgreen')
     ax5.scatter(dist_kpc_DG, ang_size_DG, label='DG', color='b')
     ax5.scatter(dist_kpc_GC, rhl_arcmin_GC, label='GC', color='k')
     ax5.set_xlabel("Distance (kpc)")
@@ -756,7 +760,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
                      color='darkred', lw=0.2)
     ax6.scatter(mass, NSTARS, label='Sim', color='r')
     ax6.scatter(mass, NSTARS_CLEAN, label='Sim filt', color='darkred')
-    ax6.scatter(mass_un, NSTARS_CLEAN_un, label='Undet', color='olive')
+    ax6.scatter(mass_un, NSTARS_CLEAN_un, label='Undet', color='darkgreen')
     ax6.set_xlabel("MASS(MSun)")
     ax6.set_ylabel("N stars")
     ax6.legend()
@@ -771,7 +775,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax7.hist(MAG_ABS_V_CLEAN, bins=20, range=(-16, 0.0), histtype="stepfilled",
              label="Sim filt", color="darkred", ls="--", alpha=0.5)
     ax7.hist(MAG_ABS_V_CLEAN_un, bins=20, range=(-16, 0.0),
-             histtype="stepfilled", label="Undet", color="olive", ls="--", lw=2)
+             histtype="stepfilled", label="Undet", color="darkgreen", ls="--", lw=2)
     ax7.set_xlabel(r"$M_V$")
     ax7.set_ylabel("N")
     ax7.legend(loc=2)
@@ -784,7 +788,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax8.hist(RHL_PC_SIM, bins=20, histtype="stepfilled", range=(
         10, 2400), label="Sim", color="r", ls="--", alpha=0.5)
     ax8.hist(RHL_PC_SIM_un, bins=20, histtype="stepfilled", range=(
-        10, 2400), label="Undet", color="olive", ls="--", lw=2)
+        10, 2400), label="Undet", color="darkgreen", ls="--", lw=2)
     ax8.set_xlabel(r"$r_{1/2}$[pc]")
     ax8.legend(loc=1)
     # ax8.set_xscale('log')
@@ -794,7 +798,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V)), bins=20, range=(-3, 1.0),
              histtype="stepfilled", label="Sim", color="r", ls="--", alpha=0.5)
     ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V_un)), bins=20, range=(-3, 1.0),
-             histtype="stepfilled", label="Sim", color="olive", ls="--", lw=2)
+             histtype="stepfilled", label="Sim", color="darkgreen", ls="--", lw=2)
     ax9.hist(FeH_DG, bins=20, range=(-3, 1.0),
              histtype="stepfilled", label="DG", color="b", alpha=0.5)
     ax9.hist(FeH_GC, bins=20, range=(-3, 1.0),
@@ -806,7 +810,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax10.scatter(dist / 1000, np.repeat(FeH_iso, len(dist)),
                  label="Sim", color="r", marker="x", lw=1.0)
     ax10.scatter(dist_un / 1000, np.repeat(FeH_iso, len(dist_un)),
-                 label="Undet", color="olive", marker="x", lw=2.0)
+                 label="Undet", color="darkgreen", marker="x", lw=2.0)
     ax10.scatter(MW_center_distance_DG_kpc, FeH_DG, label="DG", color="b")
     ax10.scatter(R_MW_GC, FeH_GC, label="GC", color="k")
     ax10.set_xlabel("Distance to the Galactic center (kpc)")
@@ -848,7 +852,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
                 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax1.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
-                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='olive', label='Undetected')
+                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='darkgreen', label='Undetected')
     ax1.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax1.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
     for i, j in enumerate(R_EXP):
@@ -873,7 +877,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
                 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax2.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
-                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='olive', label='Undetected')
+                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='darkgreen', label='Undetected')
     ax2.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax2.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
     ax2.set_xlabel(r"$r_{1/2}$ (pc))")
@@ -895,7 +899,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax3.scatter(MASS, MAG_ABS_V, label='Sim', color='r', alpha=0.2)
     ax3.scatter(MASS, MAG_ABS_V_CLEAN, label='Sim filt',
                 color='darkred', alpha=0.2)
-    ax3.scatter(MASS_un, MAG_ABS_V_CLEAN_un, label='Undetected', color='olive')
+    ax3.scatter(MASS_un, MAG_ABS_V_CLEAN_un, label='Undetected', color='darkgreen')
     for i, j in enumerate(MASS):
         if MAG_ABS_V[i] < 0.0:
             ax3.plot([MASS[i], MASS[i]],
@@ -1113,9 +1117,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     im1 = ax1.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax1.scatter(Mv_GC[cond_GC], np.log10(
-        rhl_pc_GC[cond_GC]), marker='x', color='k')
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
     ax1.scatter(Mv_DG[cond_DG], np.log10(
-        rhl_pc_DG[cond_DG]), marker='x', color='b')
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax1.annotate(name_DG[i], (Mv_DG[i], np.log10(
@@ -1141,9 +1145,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     im2 = ax2.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax2.scatter(Mv_GC[cond_GC], np.log10(
-        rhl_pc_GC[cond_GC]), marker='x', color='k')
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
     ax2.scatter(Mv_DG[cond_DG], np.log10(
-        rhl_pc_DG[cond_DG]), marker='x', color='b')
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax2.annotate(name_DG[i], (Mv_DG[i], np.log10(
@@ -1170,9 +1174,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
 
     ax3.scatter(Mv_GC[cond_GC], np.log10(
-        rhl_pc_GC[cond_GC]), marker='x', color='k')
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
     ax3.scatter(Mv_DG[cond_DG], np.log10(
-        rhl_pc_DG[cond_DG]), marker='x', color='b')
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax3.annotate(name_DG[i], (Mv_DG[i], np.log10(
@@ -1197,9 +1201,9 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     im4 = ax4.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax4.scatter(Mv_GC[cond_GC], np.log10(
-        rhl_pc_GC[cond_GC]), marker='x', color='k')
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
     ax4.scatter(Mv_DG[cond_DG], np.log10(
-        rhl_pc_DG[cond_DG]), marker='x', color='b')
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax4.annotate(name_DG[i], (Mv_DG[i], np.log10(
