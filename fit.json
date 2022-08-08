@@ -1,0 +1,7 @@
+{
+    "R0": 0.5,
+    "R1": 0.1,
+    "cat_input": "/home/adriano.pieres/public_html/gawa_processes/00010/simulations/cat_clean.fits",
+    "clusters_list_file": "/home/adriano.pieres/public_html/gawa_processes/00010/simulations/star_clusters_simulated.dat",
+    "export_dir": "/home/adriano.pieres/public_html/gawa_processes/00010/simulations/fit_profiles/"
+}
