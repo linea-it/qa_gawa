@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +22,7 @@ copyright = '2022, Adriano Pieres'
 author = 'Adriano Pieres'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = '0.0.1'
 
 
 # -- General configuration ---------------------------------------------------
