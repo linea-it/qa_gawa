@@ -8,14 +8,14 @@ Welcome to qa_gawa's documentation!
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
 
    usage/installation
    usage/quickstart
    usage/functions
-
+   usage/about
 
 
 Indices and tables
