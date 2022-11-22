@@ -103,8 +103,9 @@ def plot_pure_SNR(match_file, SNR_min):
 
     SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
 
-    SNR_det = SNR_det[SNR_det > SNR_min]
     SNR_sim = SNR_sim[SNR_det > SNR_min]
+    SNR_det = SNR_det[SNR_det > SNR_min]
+    # SNR_sim = SNR_sim[SNR_det > SNR_min]
 
     true_positive = (SNR_sim > 0.)
 
@@ -145,7 +146,7 @@ def plot_pure_mM(input_detection_path, match_file):
               'Purity wrt Distance Modulus (detection)', bins_mM)
 
 
-def puri_comp(input_simulation_path, match_file):
+def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_file):
     """This function calculates and plots the completeness and purity regargind SNR.
 
     Parameters
@@ -170,7 +171,7 @@ def puri_comp(input_simulation_path, match_file):
 
     for i, j in enumerate(SNR_range):
         comp_wrt_SNR[i] = len(
-            SNR_det[(true_positive) & (SNR_det > j)]) / len(ra_sim)
+            SNR_det[(true_positive) & (SNR_det > j)]) / len(SNR_det[SNR_det > j])
         pur_wrt_SNR[i] = len(SNR_det[(true_positive) & (
             SNR_det > j)]) / len(SNR_det[(SNR_det > j)])
 
@@ -216,7 +217,7 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
                                           usecols=(5, 6, 11, 15), unpack=True)
 
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
-    plot_comp(dist, idx_sim, 'r (pc) simulated',
+    plot_comp(dist, idx_sim, 'd (pc) simulated',
               'Completeness wrt Distance (simulations)')
     plot_comp(SNR, idx_sim, 'SNR', 'Completeness wrt Signal to Noise Ratio')
     mM_sim = 5 * np.log10(dist) - 5.
@@ -296,8 +297,8 @@ def det_sky(input_simulation_path, match_file, unmatch_file):
     unmatch_file : str
         File name of the undetected clusters.
     """
-    ra_det, dec_det, SNR_det, SNR_sim = np.loadtxt(
-        match_file, usecols=(1, 2, 12, 28), unpack=True)
+    HPX64, ra_det, dec_det, SNR_det, SNR_sim = np.loadtxt(
+        match_file, usecols=(0, 1, 2, 12, 28), unpack=True)
 
     SNR_sim_all, ra_sim, dec_sim = np.loadtxt(
         input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
@@ -927,12 +928,14 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
     star_cats_path : str
         Path to the FITS files with the position of stars in each simulated cluster.
     """
-    PIX_sim_un, RA_un, DEC_un = np.loadtxt(
-        unmatch_file, usecols=(0, 9, 10), unpack=True)
+    PIX_sim_un, N_f, RA_un, DEC_un, rexp_un, ell, pa, dist_un = np.loadtxt(
+        unmatch_file, usecols=(0, 4, 9, 10, 11, 12, 13, 15), unpack=True)
 
     len_ipix = len(PIX_sim_un)
 
     ra_cen, dec_cen = RA_un, DEC_un
+
+    rexp_un_arcsec = 3600 * (180. / np.pi) * np.arctan(rexp_un / dist_un) 
 
     for i in range(len_ipix):
 
@@ -941,7 +944,7 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
         RA_orig = data[ra_str]
         DEC_orig = data[dec_str]
         GC_orig = data['GC']
-        st_line_arcsec = 10.
+        st_line_arcsec = rexp_un_arcsec[i]
         half_size_plot_dec = 7 * st_line_arcsec / 3600.
         half_size_plot_ra = half_size_plot_dec / np.cos(np.deg2rad(dec_cen[i]))
 
@@ -949,11 +952,21 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
 
             fig, ax = plt.subplots(1, 3, figsize=(18, 6), dpi=150)
 
+            t = np.linspace(0, 2*np.pi, 100)
+            a = rexp_un_arcsec[i] / 3600
+            b = a * (1. - ell[i])
+            ell_deg = np.array([a*np.cos(t) , b*np.sin(t)])
+            r_rot = np.array([[np.cos(np.deg2rad(pa[i])) , -np.sin(np.deg2rad(pa[i]))], [np.sin(np.deg2rad(pa[i])) , np.cos(np.deg2rad(pa[i]))]])
+            ell_rot_deg = np.zeros((2, ell_deg.shape[1]))
+
+            for ii in range(ell_deg.shape[1]):
+                ell_rot_deg[:,ii] = np.dot(r_rot, ell_deg[:,ii])
+
             ax[1].set_yticks([])
             ax[2].set_yticks([])
 
-            st_line_arcsec = 10.
-            half_size_plot_dec = 7 * st_line_arcsec / 3600.
+            st_line_arcsec = rexp_un_arcsec[i]
+            half_size_plot_dec = 3 * st_line_arcsec / 3600.
             half_size_plot_ra = half_size_plot_dec / \
                 np.cos(np.deg2rad(dec_cen[i]))
 
@@ -971,9 +984,11 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
                 [ra_cen[i] + half_size_plot_ra, ra_cen[i] - half_size_plot_ra])
             ax[col].set_ylim(
                 [dec_cen[i] - half_size_plot_dec, dec_cen[i] + half_size_plot_dec])
-            # {x=ra_cen[i], y=dec_cen[i], pad=8)
             ax[col].set_title('HPX {:d}'.format(
                 int(PIX_sim_un[i])), y=0.9, pad=8, backgroundcolor='w')
+            # {x=ra_cen[i], y=dec_cen[i], pad=8)
+            # ax[col].set_title('HPX {:d} ({:d} cl stars)'.format(
+            #     int(PIX_sim_un[i]), int(N_f[i])), y=0.9, pad=8, backgroundcolor='w')
             ax[col].legend(loc=3)
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k',
                             s=100, marker='+', label='Cluster center')
@@ -983,10 +998,12 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
                          dec_cen[i] - 0.96 * half_size_plot_dec, '{:d} arcsec'.format(int(st_line_arcsec)), fontsize=8.)
             ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec /
                          (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
+            ax[col].plot(ra_cen[i]+ell_rot_deg[1,:] / np.cos(np.deg2rad(dec_cen[i])), dec_cen[i]+ell_rot_deg[0,:], ls='--', color='darkorange', label='exp radius')
+            ax[col].legend(loc=3)
 
             col = 1
-            st_line_arcsec = 20.
-            half_size_plot_dec = 7 * st_line_arcsec / 3600.
+            # st_line_arcsec = 20.
+            half_size_plot_dec = 10 * st_line_arcsec / 3600.
             half_size_plot_ra = half_size_plot_dec / \
                 np.cos(np.deg2rad(dec_cen[i]))
             ax[col].scatter(RA_orig[(GC_orig == 0)], DEC_orig[(
@@ -1000,7 +1017,6 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             # {x=ra_cen[i],     y=dec_cen[i], pad=8)
             ax[col].set_title('HPX {:d}'.format(
                 int(PIX_sim_un[i])), y=0.9, pad=8, backgroundcolor='w')
-            ax[col].legend(loc=3)
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k',
                             s=100, marker='+', label='Cluster center')
             ax[col].set_xlabel('RA (deg)')
@@ -1009,9 +1025,12 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec /
                          (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
 
+            ax[col].plot(ra_cen[i]+ell_rot_deg[1,:] / np.cos(np.deg2rad(dec_cen[i])), dec_cen[i]+ell_rot_deg[0,:], ls='--', color='darkorange', label='exp radius')
+            ax[col].legend(loc=3)
+
             col = 2
-            st_line_arcsec = 30.
-            half_size_plot_dec = 7 * st_line_arcsec / 3600.
+            # st_line_arcsec = 30.
+            half_size_plot_dec = 20 * st_line_arcsec / 3600.
             half_size_plot_ra = half_size_plot_dec / \
                 np.cos(np.deg2rad(dec_cen[i]))
             ax[col].scatter(RA_orig[(GC_orig == 0)], DEC_orig[(
@@ -1025,7 +1044,6 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             # {x=ra_cen[i],         y=dec_cen[i], pad=8)
             ax[col].set_title('HPX {:d}'.format(
                 int(PIX_sim_un[i])), y=0.9, pad=8, backgroundcolor='w')
-            ax[col].legend(loc=3)
             ax[col].scatter(ra_cen[i], dec_cen[i], color='k',
                             s=100, marker='+', label='Cluster center')
             ax[col].set_xlabel('RA (deg)')
@@ -1034,6 +1052,8 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             ax[col].plot([ra_cen[i] - half_size_plot_ra + st_line_arcsec / (np.cos(np.deg2rad(dec_cen[i]))*3600), ra_cen[i] - half_size_plot_ra + 2. * st_line_arcsec /
                          (np.cos(np.deg2rad(dec_cen[i]))*3600)], [dec_cen[i] - 0.9 * half_size_plot_dec, dec_cen[i] - 0.9 * half_size_plot_dec], color='k', lw=1)
 
+            ax[col].plot(ra_cen[i]+ell_rot_deg[1,:] / np.cos(np.deg2rad(dec_cen[i])), dec_cen[i]+ell_rot_deg[0,:], ls='--', color='darkorange', label='exp radius')
+            ax[col].legend(loc=3)
             plt.subplots_adjust(wspace=0, hspace=0)
             plt.show()
 
