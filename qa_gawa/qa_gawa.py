@@ -10,6 +10,180 @@ from astropy.io import ascii
 import tabulate
 
 
+def calc_N_hist(Mv_sim, log10_rad_sim):
+    """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
+
+    Parameters
+    ----------
+    Mv_sim : list
+        Absolute magnitude of simulated systems in V band.
+    log10_rad_sim : list
+        10-log of half-light radii of simulated systems, in parsecs.
+
+    Returns
+    -------
+    array-like
+        2d histogram of simulations in plane absolute magnitude x half-light radii.
+    """
+    Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
+
+    n_bins = 13
+
+    H_sim = np.histogram2d(Mv_sim, log10_rad_sim, bins=[n_bins, n_bins],
+                           range=[[Mmin, Mmax], [r_log_min, r_log_max]])
+
+    return H_sim[0]
+
+
+def full_N_distances(Mv_sim, radius_sim, dist_sim):
+    """Calculates and show the completeness of detections (in 2D histogram)
+    in four bins of distance.
+
+    Parameters
+    ----------
+    Mv_sim : list
+        Absolute magnitude of simulations.
+    radius_sim : list
+        Half-light radius of simulations.
+    dist_sim : list
+        Distance of simulations.
+    """
+    cmap = plt.cm.inferno_r
+    cmap.set_bad('lightgray', 1.)
+
+    Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
+
+    name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
+    mM_DG = 5 * np.log10(100*dist_kpc_DG)
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
+
+    mM_sim = 5. * np.log10(dist_sim) - 5.
+
+    cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
+    H1 = calc_N_hist(Mv_sim[cond_sim], np.log10(radius_sim[cond_sim]))
+
+    cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
+    H2 = calc_N_hist(Mv_sim[cond_sim], np.log10(radius_sim[cond_sim]))
+    
+    cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
+    H3 = calc_N_hist(Mv_sim[cond_sim], np.log10(radius_sim[cond_sim]))
+    
+    cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
+    H4 = calc_N_hist(Mv_sim[cond_sim], np.log10(radius_sim[cond_sim]))
+
+    N_max_1 = np.max(np.maximum(H1, H2))
+    N_max_2 = np.max(np.maximum(H3, H4))
+    N_max = max(N_max_1, N_max_2)
+
+    cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
+    cond_DG = (mM_DG > 10.) & (mM_DG < 15.)
+    cond_GC = (mM_GC > 10.) & (mM_GC < 15.)
+
+    ax1.set_title(r'10<$(m-M)_0$<15')
+    ax1.set_xlim([Mmin, Mmax])
+    ax1.set_ylim([r_log_min, r_log_max])
+    ax1.set_xlabel(r'$M_V$')
+    ax1.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax1.grid(True, lw=0.2)
+    im1 = ax1.imshow(H1.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., interpolation='None', cmap=cmap)
+    ax1.scatter(Mv_GC[cond_GC], np.log10(
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
+    ax1.scatter(Mv_DG[cond_DG], np.log10(
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax1.annotate(name_DG[i], (Mv_DG[i], np.log10(
+                rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax1.annotate(name_GC[i], (Mv_GC[i], np.log10(
+                rhl_pc_GC[i])), color='darkmagenta')
+
+    cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
+    cond_DG = (mM_DG > 15.) & (mM_DG < 20.)
+    cond_GC = (mM_GC > 15.) & (mM_GC < 20.)
+
+    ax2.set_title(r'15<$(m-M)_0$<20')
+    ax2.set_xlim([Mmin, Mmax])
+    ax2.set_ylim([r_log_min, r_log_max])
+    ax2.set_xlabel(r'$M_V$')
+    ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax2.grid(True, lw=0.2)
+    im2 = ax2.imshow(H2.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+    ax2.scatter(Mv_GC[cond_GC], np.log10(
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
+    ax2.scatter(Mv_DG[cond_DG], np.log10(
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax2.annotate(name_DG[i], (Mv_DG[i], np.log10(
+                rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax2.annotate(name_GC[i], (Mv_GC[i], np.log10(
+                rhl_pc_GC[i])), color='darkmagenta')
+
+    cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
+    cond_DG = (mM_DG > 20.) & (mM_DG < 25.)
+    cond_GC = (mM_GC > 20.) & (mM_GC < 25.)
+
+    ax3.set_title(r'20<$(m-M)_0$<25')
+    ax3.set_xlim([Mmin, Mmax])
+    ax3.set_ylim([r_log_min, r_log_max])
+    ax3.set_xlabel(r'$M_V$')
+    ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax3.grid(True, lw=0.2)
+    im3 = ax3.imshow(H3.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+
+    ax3.scatter(Mv_GC[cond_GC], np.log10(
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
+    ax3.scatter(Mv_DG[cond_DG], np.log10(
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax3.annotate(name_DG[i], (Mv_DG[i], np.log10(
+                rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax3.annotate(name_GC[i], (Mv_GC[i], np.log10(
+                rhl_pc_GC[i])), color='darkmagenta')
+    cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
+    cond_DG = (mM_DG > 25.) & (mM_DG < 30.)
+    cond_GC = (mM_GC > 25.) & (mM_GC < 30.)
+
+    ax4.set_title(r'25<$(m-M)_0$<30')
+    ax4.set_xlim([Mmin, Mmax])
+    ax4.set_ylim([r_log_min, r_log_max])
+    ax4.set_xlabel(r'$M_V$')
+    ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax4.grid(True, lw=0.2)
+    im4 = ax4.imshow(H4.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+    ax4.scatter(Mv_GC[cond_GC], np.log10(
+        rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
+    ax4.scatter(Mv_DG[cond_DG], np.log10(
+        rhl_pc_DG[cond_DG]), marker='x', color='b', label='DG')
+    for i, j in enumerate(rhl_pc_DG):
+        if cond_DG[i]:
+            ax4.annotate(name_DG[i], (Mv_DG[i], np.log10(
+                rhl_pc_DG[i])), color='darkmagenta')
+    for i, j in enumerate(rhl_pc_GC):
+        if cond_GC[i]:
+            ax4.annotate(name_GC[i], (Mv_GC[i], np.log10(
+                rhl_pc_GC[i])), color='darkmagenta')
+
+    cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
+    cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
+                      orientation='vertical', label='Sample of simulations')
+    plt.suptitle('Clusters simulated')
+    plt.subplots_adjust(wspace=0.2)
+    plt.show()
+
+
 def undet_cmds(unmatch_file, mask_file, input_simulation_path, input_detection_path, param2):
     """This function creates plots for the candidates that were not detected.
 
@@ -158,8 +332,8 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     """
     SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
 
-    ra_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
-                        usecols=(9), unpack=True)
+    SNR_sim_all, ra_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
+                        usecols=(6, 9), unpack=True)
 
     true_positive = (SNR_sim > 0.)
 
@@ -170,10 +344,13 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     pur_wrt_SNR = np.zeros(len(SNR_range))
 
     for i, j in enumerate(SNR_range):
-        comp_wrt_SNR[i] = len(
-            SNR_det[(true_positive) & (SNR_det > j)]) / len(SNR_det[SNR_det > j])
         pur_wrt_SNR[i] = len(SNR_det[(true_positive) & (
             SNR_det > j)]) / len(SNR_det[(SNR_det > j)])
+        if len(SNR_sim[SNR_sim > j]) > 0:
+            comp_wrt_SNR[i] = len(
+                SNR_det[(true_positive) & (SNR_det > j)]) / len(SNR_sim[SNR_sim > j])
+
+    comp_wrt_SNR[comp_wrt_SNR > 1.] = 1.
 
     fig, ax = plt.subplots(figsize=(16, 10))
     ax.plot(SNR_range, comp_wrt_SNR, label='Completeness', color='r', lw=2)
@@ -185,7 +362,7 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     ax.set_ylabel('Completeness / Purity')
     ax.legend()
     plt.show()
-
+    '''
     fig, ax = plt.subplots(figsize=(16, 10))
     ax.plot(SNR_range, comp_wrt_SNR, label='Completeness', color='r', lw=2)
     ax.plot(SNR_range, pur_wrt_SNR, label='Purity', color='b', lw=2)
@@ -196,6 +373,7 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     ax.set_ylabel('Completeness / Purity')
     ax.legend()
     plt.show()
+    '''
 
 
 def plot_comp_all(input_simulation_path, match_file, idx_sim):
@@ -225,7 +403,8 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     plot_comp(mM_sim, idx_sim, 'm-M', 'Distance modulus')
     exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(
         match_file, usecols=(33, 27, 37), unpack=True)
-
+    
+    full_N_distances(M_V, 1.7 * r_exp_pc, dist)
     full_completeness_distances(
         M_V, M_V_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
 
@@ -1236,6 +1415,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
                       orientation='vertical', label='Completeness')
+    plt.suptitle('Completeness of detections')
     plt.subplots_adjust(wspace=0.2)
     plt.show()
 
