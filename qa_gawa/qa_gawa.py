@@ -86,7 +86,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     ax1.set_xlabel(r'$M_V$')
     ax1.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax1.grid(True, lw=0.2)
-    im1 = ax1.imshow(H1.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im1 = ax1.imshow(np.flipud(H1.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., interpolation='None', cmap=cmap)
     ax1.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
@@ -111,7 +111,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     ax2.set_xlabel(r'$M_V$')
     ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax2.grid(True, lw=0.2)
-    im2 = ax2.imshow(H2.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im2 = ax2.imshow(np.flipud(H2.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
     ax2.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
@@ -136,7 +136,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     ax3.set_xlabel(r'$M_V$')
     ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax3.grid(True, lw=0.2)
-    im3 = ax3.imshow(H3.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im3 = ax3.imshow(np.flipud(H3.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
 
     ax3.scatter(Mv_GC[cond_GC], np.log10(
@@ -161,7 +161,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     ax4.set_xlabel(r'$M_V$')
     ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax4.grid(True, lw=0.2)
-    im4 = ax4.imshow(H4.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im4 = ax4.imshow(np.flipud(H4.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
     ax4.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
@@ -1313,7 +1313,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax1.set_xlabel(r'$M_V$')
     ax1.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax1.grid(True, lw=0.2)
-    im1 = ax1.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im1 = ax1.imshow(np.flipud(H.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax1.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
@@ -1341,7 +1341,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax2.set_xlabel(r'$M_V$')
     ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax2.grid(True, lw=0.2)
-    im2 = ax2.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im2 = ax2.imshow(np.flipud(H.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax2.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
@@ -1369,7 +1369,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax3.set_xlabel(r'$M_V$')
     ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax3.grid(True, lw=0.2)
-    im3 = ax3.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im3 = ax3.imshow(np.flipud(H.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
 
     ax3.scatter(Mv_GC[cond_GC], np.log10(
@@ -1397,7 +1397,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     ax4.set_xlabel(r'$M_V$')
     ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax4.grid(True, lw=0.2)
-    im4 = ax4.imshow(H.T, extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
+    im4 = ax4.imshow(np.flipud(H.T), extent=[Mmin, Mmax, r_log_min, r_log_max], aspect='auto',
                      vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
     ax4.scatter(Mv_GC[cond_GC], np.log10(
         rhl_pc_GC[cond_GC]), marker='x', color='k', label='GC')
