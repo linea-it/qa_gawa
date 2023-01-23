@@ -48,8 +48,9 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     dist_sim : list
         Distance of simulations.
     """
-    cmap = plt.cm.inferno_r
-    cmap.set_bad('lightgray', 1.)
+    cmap = plt.cm.Blues
+    cmap.set_bad('lightgray', 0.0)
+    cmap.set_under('lightgray', .01)
 
     Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
 
@@ -202,44 +203,96 @@ def undet_cmds(unmatch_file, mask_file, input_simulation_path, input_detection_p
     """
     HPX64, N = np.loadtxt(unmatch_file, usecols=(0, 1), unpack=True)
 
-    n_col = 4
-    n_row = int(len(N) / n_col) + 1
+    n_col = 5
+    n_row = int(len(N) / n_col)
+    n_reminder = len(N) % n_col
 
     gr, g = np.loadtxt(mask_file, usecols=(0, 1), unpack=True)
 
-    fig, axs = plt.subplots(n_row, n_col, figsize=(16, 4 * n_row), dpi=150.)
+    # fig, axs = plt.subplots(n_row, n_col, figsize=(16, 4 * n_row), dpi=100.)
 
     slices_file = input_detection_path + '/dslices.fits'
     data_sl = getdata(slices_file)
     d_slices_pc = data_sl["dist_pc"]
     mM_slices = 5 * np.log10(d_slices_pc) - 5.
+    to_be_shown = 20
 
-    for ax, HPX in zip(axs.flat, HPX64):
-        ax.set_title('HPX: {:d}'.format(int(HPX)))
-        data = fits.getdata(input_simulation_path +
-                            '/hpx_cats_clean/' + str(int(HPX)) + '.fits')
-        MAGG = data['mag_g_with_err']
-        MAGR = data['mag_r_with_err']
-        GC = data['GC']
-        ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
-                   color='lightgrey', label='MW', s=0.1)
-        ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
-                   color='r', label='Cluster', s=0.4)
+    for i in range(n_row):
 
-        for i in range(len(mM_slices)):
-            ax.plot(
-                gr, g + mM_slices[i], label='m-M={:.2f}'.format(mM_slices[i]), lw=1)
-        ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
-                    param2['isochrone_masks'][param2['survey']]['mask_color_max'])
-        ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
-                    param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
-        ax.set_xlabel(r'$g_0-r_0$')
-        ax.set_ylabel(r'$g_0$')
-    plt.tight_layout()
-    plt.show()
+        if i != n_row:
+
+            for j in range(n_col):
+
+                idx_obj = i * n_col + j
+        
+                fig, axx = plt.subplots(n_col, 1, figsize=(20, 4), dpi=150.)
+
+                for ax in axx.flat:
+                    ax.set_title('HPX: {:d}'.format(int(HPX64[idx_obj])))
+                    data = fits.getdata(input_simulation_path +
+                                '/hpx_cats_clean/' + str(int(HPX64[idx_obj])) + '.fits')
+                    MAGG = data['mag_g_with_err']
+                    MAGR = data['mag_r_with_err']
+                    GC = data['GC']
+                    ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
+                               color='lightgrey', label='MW', s=0.1)
+                    ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
+                               color='r', label='Cluster', s=0.4)
+
+                    for ii in range(len(mM_slices)):
+                        ax.plot(gr, g + mM_slices[ii], label='m-M={:.2f}'.format(mM_slices[ii]), lw=1)
+                    ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
+                            param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+                    ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
+                            param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+                    ax.set_xlabel(r'$g_0-r_0$')
+                    ax.set_ylabel(r'$g_0$')
+                    plt.tight_layout()
+                    if i < to_be_shown:
+                        plt.show()
+                    else:
+                        # plt.savefig(str(HPX64[idx_obj]) + '.png')
+                        # plt.close()
+                        pass
+
+        else:
+            for j in n_reminder:
+
+                idx_obj = i * n_row + j
+        
+                fig, axx = plt.subplots(n_reminder, 1, figsize=(20, 4), dpi=150.)
+
+                for ax in axx.flat:
+                    ax.set_title('HPX: {:d}'.format(int(HPX64[idx_obj])))
+                    data = fits.getdata(input_simulation_path +
+                                '/hpx_cats_clean/' + str(int(HPX64[idx_obj])) + '.fits')
+                    MAGG = data['mag_g_with_err']
+                    MAGR = data['mag_r_with_err']
+                    GC = data['GC']
+                    ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
+                               color='lightgrey', label='MW', s=0.1)
+                    ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
+                               color='r', label='Cluster', s=0.4)
+
+                    for ii in range(len(mM_slices)):
+                        ax.plot(gr, g + mM_slices[ii], label='m-M={:.2f}'.format(mM_slices[ii]), lw=1)
+                    ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
+                            param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+                    ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
+                            param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+                    ax.set_xlabel(r'$g_0-r_0$')
+                    ax.set_ylabel(r'$g_0$')
+                    plt.tight_layout()
+                    if i < to_be_shown:
+                        plt.show()
+                    else:
+                        # plt.savefig(str(HPX64[idx_obj]) + '.png')
+                        # plt.close()
+                        pass
 
 
-def print_undet_table(unmatch_file):
+
+def print_undet_table(unmatch_file, n):
     """This function plots the table of undetected clusters as an html table.
 
     Parameters
@@ -257,7 +310,7 @@ def print_undet_table(unmatch_file):
 
     HPX64 = np.loadtxt(unmatch_file, usecols=(0), dtype=int, unpack=True)
 
-    table = tabulate.tabulate(np.loadtxt(unmatch_file),
+    table = tabulate.tabulate(np.loadtxt(unmatch_file)[:][0:n],
                               tablefmt='html',
                               headers=(first_line[1:].split()))
 
@@ -275,17 +328,17 @@ def plot_pure_SNR(match_file, SNR_min):
         File name of the detected clusters.
     """
 
-    SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
+    SNR_det, SNR_sim, det = np.loadtxt(match_file, usecols=(12, 28, 38), unpack=True)
 
     SNR_sim = SNR_sim[SNR_det > SNR_min]
     SNR_det = SNR_det[SNR_det > SNR_min]
     # SNR_sim = SNR_sim[SNR_det > SNR_min]
 
-    true_positive = (SNR_sim > 0.)
+    true_positive = (det == 1.)
 
-    plot_pure(SNR_det, SNR_det[true_positive],
-              'Signal-to-noise ratio (detection)',
-              'Purity wrt SNR > {:.2f}'.format(SNR_min))
+    plot_pure(SNR_det, [SNR_det[i] for i in true_positive if true_positive],
+              ' SNR from detections',
+              'Purity wrt SNR (detections) > {:.2f}'.format(SNR_min))
 
 
 def plot_pure_mM(input_detection_path, match_file):
@@ -299,7 +352,7 @@ def plot_pure_mM(input_detection_path, match_file):
        File name of the detected clusters.
     """
 
-    SNR_sim = np.loadtxt(match_file, usecols=(28), unpack=True)
+    SNR_sim, det = np.loadtxt(match_file, usecols=(28, 38), unpack=True)
 
     slices_file = input_detection_path + '/dslices.fits'
     data_sl = getdata(slices_file)
@@ -310,7 +363,7 @@ def plot_pure_mM(input_detection_path, match_file):
     bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] +
                           bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
 
-    true_positive = (SNR_sim > 0.)
+    true_positive = (det == 1.)
 
     dist_kpc_det = np.loadtxt(match_file, usecols=(5), unpack=True)
 
@@ -330,35 +383,36 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     match_file : str
        File name of the detected clusters.
     """
-    SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
+    SNR_det, SNR_sim, det = np.loadtxt(match_file, usecols=(12, 28, 38), unpack=True)
 
     SNR_sim_all, ra_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
                         usecols=(6, 9), unpack=True)
 
-    true_positive = (SNR_sim > 0.)
+    true_positive = (det == 1.)
 
-    SNR_range = np.arange(
-        np.min(SNR_det[true_positive]), np.max(SNR_det[true_positive]), 1.)
+    SNR_range = np.arange(0., np.max(SNR_sim), 1.)
 
-    comp_wrt_SNR = np.zeros(len(SNR_range))
-    pur_wrt_SNR = np.zeros(len(SNR_range))
+    comp_wrt_SNR = np.zeros(len(SNR_range)-1)
+    pur_wrt_SNR = np.zeros(len(SNR_range)-1)
 
-    for i, j in enumerate(SNR_range):
-        pur_wrt_SNR[i] = len(SNR_det[(true_positive) & (
-            SNR_det > j)]) / len(SNR_det[(SNR_det > j)])
-        if len(SNR_sim[SNR_sim > j]) > 0:
-            comp_wrt_SNR[i] = len(
-                SNR_det[(true_positive) & (SNR_det > j)]) / len(SNR_sim[SNR_sim > j])
+    for k, i, j in zip(range(len(SNR_range)-1), SNR_range[0:-1], SNR_range[1:]):
+        # put here a constrint to minimum and maximum
+        if len(SNR_det[(SNR_det > i) & (SNR_det < j)]) > 0:
+            pur_wrt_SNR[k] = len(SNR_det[(true_positive) & (
+            SNR_det > i) & (SNR_det < j)]) / len(SNR_det[(SNR_det > i) & (SNR_det < j)])
+        if len(SNR_sim[(SNR_sim > i)&(SNR_sim < j)]) > 0:
+            comp_wrt_SNR[k] = len(SNR_sim[(true_positive) & (
+            SNR_det > i) & (SNR_det < j)]) / len(SNR_sim_all[(SNR_sim_all > i)&(SNR_sim_all < j)])
 
     comp_wrt_SNR[comp_wrt_SNR > 1.] = 1.
 
     fig, ax = plt.subplots(figsize=(16, 10))
-    ax.plot(SNR_range, comp_wrt_SNR, label='Completeness', color='r', lw=2)
-    ax.plot(SNR_range, pur_wrt_SNR, label='Purity', color='b', lw=2)
+    ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    ax.plot(SNR_range[:-1], pur_wrt_SNR, label='Purity', color='b', lw=2)
     ax.set_xlim([0., 1.1 * np.max(SNR_range)])
     ax.set_ylim([0, 1.1])
     ax.set_title('Purity/Completeness versus SNR')
-    ax.set_xlabel('SNR from detections')
+    ax.set_xlabel('SNR')
     ax.set_ylabel('Completeness / Purity')
     ax.legend()
     plt.show()
@@ -397,10 +451,10 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
     plot_comp(dist, idx_sim, 'd (pc) simulated',
               'Completeness wrt Distance (simulations)')
-    plot_comp(SNR, idx_sim, 'SNR', 'Completeness wrt Signal to Noise Ratio')
+    plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
     mM_sim = 5 * np.log10(dist) - 5.
 
-    plot_comp(mM_sim, idx_sim, 'm-M', 'Distance modulus')
+    plot_comp(mM_sim, idx_sim, 'm-M', 'Completeness wrt Distance modulus')
     exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(
         match_file, usecols=(33, 27, 37), unpack=True)
     
@@ -440,24 +494,26 @@ def dist_dist(match_file):
        File name of the detected clusters.
     """
 
-    dist_init_kpc_det, dist_err_kpc_det, SNR_sim, dist_sim = np.loadtxt(match_file,
+    dist_init_kpc_det, dist_err_kpc_det, SNR_sim, dist_sim, det = np.loadtxt(match_file,
                                                                         usecols=(
-                                                                            5, 6, 28, 37),
+                                                                            5, 6, 28, 37, 38),
                                                                         unpack=True)
-
-    true_positive = (SNR_sim > 0.)
+    true_positive = (det == 1.)
 
     dist_sim_kpc = dist_sim / 1000
     fig = plt.figure(figsize=(16, 10))
-    plt.errorbar(dist_sim_kpc[true_positive], dist_init_kpc_det[true_positive],
-                 yerr=dist_err_kpc_det[true_positive], xerr=None,  fmt='o', c='k')
-    plt.plot(np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4),
-             np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), 1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4), color='r')
+    # plt.errorbar(dist_sim_kpc[true_positive], dist_init_kpc_det[true_positive],
+    #              yerr=dist_err_kpc_det[true_positive], xerr=None,  fmt='o', c='k')
+    plt.plot(np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4),
+             np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4), color='r')
+    dist_sim_kpc_bin = np.linspace(np.min(dist_sim_kpc), np.max(dist_sim_kpc), 6, endpoint=True)
+    for ii in range(len(dist_sim_kpc_bin)-1):
+        plt.violinplot(dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_init_kpc_det < dist_sim_kpc_bin[ii+1])], [(dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.], points=100, widths=100., showmeans=True, showextrema=True, showmedians=True, quantiles=[0.05, 0.25, 0.75, 0.95], bw_method=0.5)
     plt.xlim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
-             1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
+             max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
     plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
-             1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    plt.title('Comparing recovery distances')
+             max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
+    plt.title('Comparing recovery distances (0.05 / 0.25 / 0.75 / 0.95)')
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('Distances (kpc) from detections')
     plt.show()
@@ -476,26 +532,26 @@ def det_sky(input_simulation_path, match_file, unmatch_file):
     unmatch_file : str
         File name of the undetected clusters.
     """
-    HPX64, ra_det, dec_det, SNR_det, SNR_sim = np.loadtxt(
-        match_file, usecols=(0, 1, 2, 12, 28), unpack=True)
+    ra_det, dec_det, SNR_det, HPX64, SNR_sim, detected = np.loadtxt(
+        match_file, usecols=(1, 2, 12, 22, 28, 38), unpack=True)
 
     SNR_sim_all, ra_sim, dec_sim = np.loadtxt(
         input_simulation_path + '/star_clusters_simulated.dat', usecols=(6, 9, 10), unpack=True)
 
-    ra_undet, dec_undet = np.loadtxt(
-        unmatch_file, usecols=(9, 10), unpack=True)
+    SNR_undet, ra_undet, dec_undet = np.loadtxt(
+        unmatch_file, usecols=(6, 9, 10), unpack=True)
 
-    true_positive = (SNR_sim > 0.)
-    false_positive = (SNR_sim <= 0.)
+    true_positive = (detected == 1)
+    false_positive = (detected == 0)
 
     cm = plt.cm.get_cmap('copper_r')
-
-    fig = plt.figure(figsize=(16, 10))
-    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+    '''
+    fig = plt.figure(figsize=(30, 12))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=10.0, marker='^',
                 label='Simulations: ({:d})'.format(len(ra_sim)))
-    sc = plt.scatter(ra_det[true_positive], dec_det[true_positive], c=SNR_det[true_positive], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+    sc = plt.scatter(ra_det[true_positive], dec_det[true_positive], c=SNR_det[true_positive], vmin=0, vmax=np.max(SNR_det), marker='x', s=10.,
                      cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
-    plt.scatter(ra_det[false_positive], dec_det[false_positive], c=SNR_det[false_positive], s=200.0, cmap=cm,
+    plt.scatter(ra_det[false_positive], dec_det[false_positive], c=SNR_det[false_positive], s=100.0, cmap=cm,
                 lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[false_positive])))
     plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
                 lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
@@ -507,16 +563,16 @@ def det_sky(input_simulation_path, match_file, unmatch_file):
     plt.title('Spatial distribution of clusters (SN > 3.)')
     plt.legend(loc=1)
     plt.show()
-
-    fig = plt.figure(figsize=(16, 10))
-    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+    '''
+    fig = plt.figure(figsize=(30, 12))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=10.0, marker='^',
                 label='Simulations: ({:d})'.format(len(ra_sim)))
-    cond = (true_positive) & (SNR_det > 5)
+    cond = (SNR_det > 5)
     sc = plt.scatter(ra_det[(true_positive) & (cond)], dec_det[(true_positive) & (cond)],
-                     c=SNR_det[(true_positive) & (cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+                     c=SNR_det[(true_positive) & (cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=10.,
                      cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
     plt.scatter(ra_det[(false_positive) & (cond)], dec_det[(false_positive) & (cond)],
-                c=SNR_det[(false_positive) & (cond)], s=200.0, cmap=cm,
+                c=SNR_det[(false_positive) & (cond)], s=100.0, cmap=cm,
                 lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[(false_positive) & (cond)])))
     plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
                 lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
@@ -529,15 +585,15 @@ def det_sky(input_simulation_path, match_file, unmatch_file):
     plt.legend(loc=1)
     plt.show()
 
-    fig = plt.figure(figsize=(16, 10))
-    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=100.0, marker='^',
+    fig = plt.figure(figsize=(30, 12))
+    plt.scatter(ra_sim, dec_sim, c=SNR_sim_all, vmin=0, vmax=np.max(SNR_det), cmap=cm, s=10.0, marker='^',
                 label='Simulations: ({:d})'.format(len(ra_sim)))
-    cond = (true_positive) & (SNR_det > 10)
+    cond = (SNR_det > 10)
     sc = plt.scatter(ra_det[(true_positive) & (cond)], dec_det[(true_positive) & (cond)],
-                     c=SNR_det[(true_positive) & (cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=150.,
+                     c=SNR_det[(true_positive) & (cond)], vmin=0, vmax=np.max(SNR_det), marker='x', s=10.,
                      cmap=cm, label='True Positives: ({:d})'.format(len(np.unique(HPX64[true_positive]))))
     plt.scatter(ra_det[(false_positive) & (cond)], dec_det[(false_positive) & (cond)],
-                c=SNR_det[(false_positive) & (cond)], s=200.0, cmap=cm,
+                c=SNR_det[(false_positive) & (cond)], s=100.0, cmap=cm,
                 lw=2, alpha=0.75, label='Not matched: ({:d})'.format(len(ra_det[(false_positive) & (cond)])))
     plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
                 lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
@@ -550,6 +606,19 @@ def det_sky(input_simulation_path, match_file, unmatch_file):
     plt.legend(loc=1)
     plt.show()
 
+    fig = plt.figure(figsize=(30, 12))
+    # sc = plt.scatter(ra_undet, dec_undet, c=SNR_undet, vmin=0, vmax=np.max(SNR_undet), marker='x', s=200.,
+    #                 cmap=cm, label='Undetected clusters: ({:d})'.format(len(ra_undet)))
+    plt.scatter(ra_undet, dec_undet, color='None', edgecolor='k', s=200.0,
+               lw=2, alpha=0.75, label='Not detected: ({:d})'.format(len(ra_undet)))
+    # plt.colorbar(sc, label='SNR simulation')
+    plt.xlim(np.max(ra_sim) + 0.5, np.min(ra_sim)-0.5)
+    plt.ylim(np.min(dec_sim) - 0.5, np.max(dec_sim)+1.0)
+    plt.xlabel('RA')
+    plt.ylabel('DEC')
+    plt.title('Spatial distribution of undetected clusters')
+    plt.legend(loc=1)
+    plt.show()
 
 def dist_hist(match_file):
     """Plots histogram of distances.
@@ -582,7 +651,7 @@ def dist_hist(match_file):
     plt.show()
 
 
-def SNR_hist(match_file):
+def SNR_hist(match_file, unmatch_file):
     """Plots histogram of SNR.
 
     Parameters
@@ -591,18 +660,20 @@ def SNR_hist(match_file):
        File name of the detected clusters.
     """
 
-    SNR_det, SNR_sim = np.loadtxt(match_file, usecols=(12, 28), unpack=True)
+    SNR_det, SNR_sim, det = np.loadtxt(match_file, usecols=(12, 28, 38), unpack=True)
+    SNR_undet = np.loadtxt(unmatch_file, usecols=(6), unpack=True)
 
-    true_positive = (SNR_sim > 0.)
-    false_positive = (SNR_sim <= 0.)
+    true_positive = (det == 1.)
+    false_positive = (det == 0.)
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
+    ax1.hist(SNR_sim, bins=20, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
+             color="k", lw=4, label='SNR simulations (all)')
     ax1.hist(SNR_det, bins=20, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
-             color="r", lw=4, label='SNR')
-    ax1.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step',
-             color="mediumblue", lw=2, label='SNR (true positives)')
-    ax1.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step',
-             color="maroon", lw=3, label='SNR (false positives)')
+             color="r", lw=4, label='SNR detections (all)')
+    ax1.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
+    ax1.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="maroon", lw=3, label='SNR detections (false positives)')
+    ax1.hist(SNR_undet, bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
     ax1.set_xlabel('SNR')
     ax1.set_ylabel('# Clusters')
     ax1.set_yscale('log')
@@ -687,26 +758,42 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     idx_det_outliers = [i for i in range(len(data_det)) if i not in idx_det]
 
     file_match = open(match_file, 'w')
-    print('#0-peak_id 1-ra 2-dec 3-iobj 4-jobj 5-dist_init_kpc 6-dist_err_kpc 7-dist_min_kpc 8-dist_max_kpc 9-coverfrac 10-coverfrac_bkg 11-wradius_arcmin 12-snr 13-Naper 14-Naper_tot 15-NWaper_tot 16-Naper_bkg 17-icyl 18-tile 19-slice 20-id_in_tile 21-id 22-HPX64 23-N 24-MV 25-SNR 26-N_f 27-MV_f 28-SNR_f 29-L 30-B 31-ra 32-dec 33-r_exp 34-ell 35-pa 36-mass 37-dist', file=file_match)
+    print('#0-peak_id 1-ra 2-dec 3-iobj 4-jobj 5-dist_init_kpc 6-dist_err_kpc 7-dist_min_kpc 8-dist_max_kpc 9-coverfrac 10-coverfrac_bkg 11-wradius_arcmin 12-snr 13-Naper 14-Naper_tot 15-NWaper_tot 16-Naper_bkg 17-icyl 18-tile 19-slice 20-id_in_tile 21-id 22-HPX64 23-N 24-MV 25-SNR 26-N_f 27-MV_f 28-SNR_f 29-L 30-B 31-ra 32-dec 33-r_exp 34-ell 35-pa 36-mass 37-dist 38-1_matched-0_not_matched', file=file_match)
 
     for i, j in zip(idx_sim, idx_det):
-        print(*data_det[:][j], *data_sim[i],
+        print(*data_det[:][j], *data_sim[i], '1', 
               sep=' ', file=file_match, end='\n')
 
     for i in (idx_det_outliers):
-        print(*data_det[i], ' -99.999 ' * len(data_sim[1]),
+        print(*data_det[i], ' -99.999 ' * len(data_sim[1]), '0',
               sep=' ', file=file_match, end='\n')
 
     file_match.close()
 
     idx_not_det = [i for i in range(len(data_sim)) if i not in idx_sim]
 
+    file_unmatch2 = open(unmatch_file[:-4] + '_unsort.dat', 'w')
+    print('#0-HPX64 1-N 2-MV 3-SNR 4-N_f 5-MV_f 6-SNR_f 7-L 8-B 9-ra 10-dec 11-r_exp 12-ell 13-pa 14-mass 15-dist', file=file_unmatch2)
+
+    for i in idx_not_det:
+        print(*data_sim[i], sep=' ', file=file_unmatch2, end='\n')
+    file_unmatch2.close()
+
+    SNR_f = np.loadtxt(unmatch_file[:-4] + '_unsort.dat', usecols=(6), unpack=True)
+    idx_SNR_f = np.argsort(SNR_f)[::-1]
+
+    file_unmatch2 = open(unmatch_file[:-4] + '_unsort.dat', 'r')
+    lines = file_unmatch2.readlines()
+
+    line = [lines[i+1] for i in idx_SNR_f]
+
     file_unmatch = open(unmatch_file, 'w')
     print('#0-HPX64 1-N 2-MV 3-SNR 4-N_f 5-MV_f 6-SNR_f 7-L 8-B 9-ra 10-dec 11-r_exp 12-ell 13-pa 14-mass 15-dist', file=file_unmatch)
 
-    for i in idx_not_det:
-        print(*data_sim[i], sep=' ', file=file_unmatch, end='\n')
+    for i in line:
+        print(i, sep=' ', file=file_unmatch, end='')
     file_unmatch.close()
+
     return idx_sim, idx_det
 
 
@@ -1116,7 +1203,7 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
 
     rexp_un_arcsec = 3600 * (180. / np.pi) * np.arctan(rexp_un / dist_un) 
 
-    for i in range(len_ipix):
+    for i in range(20):
 
         data = fits.getdata(star_cats_path + '/' +
                             str(int(PIX_sim_un[i])) + '.fits')
@@ -1287,7 +1374,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     dist_sim_det : list
         Distances of simulated clusters that are detected.
     """
-    cmap = plt.cm.inferno_r
+    cmap = plt.cm.Blues
     cmap.set_bad('lightgray', 1.)
 
     Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
@@ -1453,7 +1540,7 @@ def plot_pure(arg_all, arg_conf, label, title, bins=20):
         ax1.legend(loc=2)
 
         ax2.step(bins, np.append(
-            pureness[0], pureness), 'r', lw=2, label='Data')
+            pureness[0], pureness), 'b', lw=2, label='Data')
         # ax2.step(A[1][0:-1],pureness, label='Data', color='k')
         ax2.set_xlabel(label)
         ax2.set_ylabel('Purity')
@@ -1464,16 +1551,16 @@ def plot_pure(arg_all, arg_conf, label, title, bins=20):
         plt.show()
     except:
         A = ax1.hist(arg_all, bins=bins, range=(min_, max_),
-                     histtype='step', lw=2, label='All detections')
+                     histtype='step', color='b', lw=2, label='All detections')
         B = ax1.hist(arg_conf, bins=bins, range=(min_, max_),
-                     histtype='stepfilled', lw=2, label='True clusters')
+                     histtype='stepfilled', color='orange', lw=2, label='True clusters')
         pureness = B[0] / A[0]
         ax1.set_xlabel(label)
         ax1.set_ylabel('Number of clusters detected')
         ax1.set_xlim([min_, max_])
         ax1.legend(loc=2)
 
-        ax2.step(A[1][0:-1], np.nan_to_num(pureness), 'r', lw=2, label='Data')
+        ax2.step(A[1][0:-1], np.nan_to_num(pureness), 'b', lw=2, label='Data')
         ax2.set_xlabel(label)
         ax2.set_ylabel('Purity')
         ax2.set_ylim([0, 1.2])
@@ -1501,9 +1588,9 @@ def plot_comp(arg, idxs, label, title):
     bins = 20
     step = (np.max(arg) - np.min(arg)) / bins
     A = ax1.hist(arg[idxs], bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
-                 color="r", label='Detections')
-    B = ax1.hist(arg, bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
-                 color="mediumblue", label='Simulated clusters')
+                 lw=2, color="b", label='All detections')
+    B = ax1.hist(arg, bins=bins, range=(np.min(arg), np.max(arg)), histtype='stepfilled',
+                 lw=2, color="orange", label='True clusters')
     completeness = A[0] / B[0]
     completeness[completeness >= 1.] = 1.
     # Only to set steps equal to zero where the completeness does not have results.
@@ -1514,7 +1601,7 @@ def plot_comp(arg, idxs, label, title):
     ax1.legend()
 
     ax2.step(np.append(A[1][0] - step, A[1]),
-             np.append(compl, 0), 'k', label='Data', where='mid')
+             np.append(compl, 0), 'r', label='Data', where='mid')
     ax2.set_xlabel(label)
     ax2.set_ylabel('Completeness')
     ax2.set_ylim([0, 1.1])
