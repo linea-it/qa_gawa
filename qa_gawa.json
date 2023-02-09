@@ -1,8 +1,8 @@
 {
-    "input_simulation_path": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00042/simulations",
-    "input_detection_path": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00042/detections",
-    "match_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00042/detections/qa/match.dat",
-    "unmatch_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00042/detections/qa/unmatch.dat",
-    "copy_dir": "/home/adriano.pieres/public_html/gawa_processes/00042/detections/qa",
+    "input_simulation_path": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00050/simulations",
+    "input_detection_path": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00050/detections",
+    "match_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00050/detections/qa/match.dat",
+    "unmatch_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00050/detections/qa/unmatch.dat",
+    "copy_dir": "/home/adriano.pieres/public_html/gawa_processes/00050/detections/qa",
     "dist2match_arcmin": 2.00 
 }
