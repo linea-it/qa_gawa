@@ -19,5 +19,6 @@ from qa_gawa.qa_gawa import (
     plot_pure_SNR,
     plot_comp_all,
     print_undet_table,
+    print_undet_table_tail,
     undet_cmds
 )
