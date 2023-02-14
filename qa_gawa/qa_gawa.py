@@ -310,8 +310,9 @@ def plot_pure_SNR(match_file, SNR_min):
 
     SNR_det, SNR_sim, det = np.loadtxt(match_file, usecols=(12, 28, 38), unpack=True)
 
-    #SNR_sim = SNR_sim[SNR_det > SNR_min]
-    #SNR_det = SNR_det[SNR_det > SNR_min]
+    det = det[SNR_det > SNR_min]
+    SNR_sim = SNR_sim[SNR_det > SNR_min]
+    SNR_det = SNR_det[SNR_det > SNR_min]
     # SNR_sim = SNR_sim[SNR_det > SNR_min]
 
     SNR_det_true_positive = [SNR_det[i] for i, j in enumerate(det) if j == 1.]
@@ -458,10 +459,12 @@ def SNR_SNR(match_file):
 
     fig = plt.figure(figsize=(16, 10))
     plt.scatter(SNR_sim, SNR_det)
-    plt.plot(np.linspace(0., 1.1 * max(np.max(SNR_sim), np.max(SNR_det)), 4),
-             np.linspace(0., 1.1 * max(np.max(SNR_sim), np.max(SNR_det)), 4), color='r')
+    plt.plot(np.linspace(0.001, 1.1 * max(np.max(SNR_sim), np.max(SNR_det)), 4),
+             np.linspace(0.001, 1.1 * max(np.max(SNR_sim), np.max(SNR_det)), 4), color='r')
     plt.xlabel('SNR (simulations)')
     plt.ylabel('SNR (detections)')
+    plt.xscale('log')
+    plt.yscale('log')
     plt.xlim([0.1, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
     plt.ylim([0.1, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
     plt.show()
@@ -490,17 +493,15 @@ def dist_dist(match_file):
              np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4), color='r')
     dist_sim_kpc_bin = np.linspace(np.min(dist_sim_kpc), np.max(dist_sim_kpc), 6, endpoint=True)
     for ii in range(len(dist_sim_kpc_bin)-1):
-        data_x = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_init_kpc_det < dist_sim_kpc_bin[ii+1])]
-        # plt.boxplot(data_x, showfliers=False)
-        # data_y = [(dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.]
+        data_x = (dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.
+        data_y = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_sim_kpc < dist_sim_kpc_bin[ii+1])]
 
-        # seaborn.violinplot(x=data_x, y=data_y)
-        plt.violinplot(dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_init_kpc_det < dist_sim_kpc_bin[ii+1])], [(dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.], points=100, widths=100., showmeans=False, showextrema=True, showmedians=False, quantiles=[0.05, 0.5, 0.95], bw_method=0.5, vert=True)
+        plt.boxplot(data_y, 0, positions=[data_x], widths=50, bootstrap=None)
     plt.xlim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
-             max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
-             max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    plt.title('Comparing recovery distances (0.05 / 0.5 / 0.95)')
+             1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
+    #plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
+    #         max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
+    plt.title('Comparing recovery distances (minimum / first quartile / median / last quartile / maximum)')
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('Distances (kpc) from detections')
     plt.show()
@@ -655,19 +656,36 @@ def SNR_hist(match_file, unmatch_file):
     true_positive = (det == 1.)
     false_positive = (det == 0.)
 
-    fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
-    ax1.hist(SNR_sim, bins=20, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
-             color="k", lw=4, label='SNR simulations (all)')
-    ax1.hist(SNR_det, bins=20, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
-             color="r", lw=4, label='SNR detections (all)')
-    ax1.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
-    ax1.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="maroon", lw=3, label='SNR detections (false positives)')
-    ax1.hist(SNR_undet, bins=20, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
-    ax1.set_xlabel('SNR')
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 10))
+    ax1.hist(SNR_sim, bins=50, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
+             color="k", lw=2, label='SNR simulations (all)')
+    ax1.hist(SNR_undet, bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
+    # ax1.hist(SNR_det, bins=50, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
+    #          color="r", lw=4, label='SNR detections (all)')
+    ax2.hist(SNR_det[true_positive], bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
+    ax2.hist(SNR_det[false_positive], bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="maroon", lw=2, label='SNR detections (false positives)')
+    ax1.set_xlabel('SNR (simulations)')
     ax1.set_ylabel('# Clusters')
     ax1.set_yscale('log')
     ax1.legend()
+    ax2.set_xlabel('SNR (detections)')
+    ax2.set_ylabel('# Clusters')
+    ax2.set_yscale('log')
+    ax2.legend()
 
+    ax3.hist(SNR_sim, bins=20, range=(np.min(SNR_det) - 1., 10.), histtype='step',
+             color="k", lw=4, label='SNR simulations (all)')
+    ax3.hist(SNR_undet, bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
+    ax4.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
+    ax4.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="maroon", lw=3, label='SNR detections (false positives)')
+    ax3.set_xlabel('SNR (simulations)')
+    ax3.set_ylabel('# Clusters')
+    ax3.set_yscale('log')
+    ax3.legend()
+    ax4.set_xlabel('SNR (detections)')
+    ax4.set_ylabel('# Clusters')
+    ax4.set_yscale('log')
+    ax4.legend()
     fig.suptitle('SNR Histogram (detections)')
     plt.show()
 
@@ -1577,6 +1595,8 @@ def plot_comp(arg, idxs, label, title):
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
     bins = 20
+    if label == 'M_V':
+        bins = len(np.arange(np.min(arg), np.max(arg), 0.5))
     step = (np.max(arg) - np.min(arg)) / bins
     A = ax1.hist(arg[idxs], bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
                  lw=2, color="b", label='All detections')
@@ -1587,6 +1607,8 @@ def plot_comp(arg, idxs, label, title):
     # Only to set steps equal to zero where the completeness does not have results.
     # Warning: the values replaced by zero are those ones where the completeness in undetermined.
     compl = np.append(0., np.nan_to_num(completeness))
+    if label == 'M_V':
+        ax1.set_xlim([np.min(arg[np.abs(arg) < 30]), np.max(arg[np.abs(arg) < 30])])
     ax1.set_xlabel(label)
     ax1.set_ylabel('# Detected Clusters')
     ax1.legend()
@@ -1596,6 +1618,8 @@ def plot_comp(arg, idxs, label, title):
     ax2.set_xlabel(label)
     ax2.set_ylabel('Completeness')
     ax2.set_ylim([0, 1.1])
+    if label == 'M_V':
+       ax2.set_xlim([np.min(arg[np.abs(arg) < 30]), np.max(arg[np.abs(arg) < 30])])
     ax2.legend()
     fig.suptitle(title)
     plt.show()
