@@ -390,13 +390,23 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     comp_wrt_SNR[comp_wrt_SNR > 1.] = 1.
 
     fig, ax = plt.subplots(figsize=(16, 10))
-    ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    # ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
     ax.plot(SNR_range[:-1], pur_wrt_SNR, label='Purity', color='b', lw=2)
     ax.set_xlim([np.min(SNR_range), 1.1 * np.max(SNR_range)])
     ax.set_ylim([0, 1.1])
-    ax.set_title('Purity/Completeness versus SNR')
-    ax.set_xlabel('SNR')
-    ax.set_ylabel('Completeness / Purity')
+    ax.set_title('Purity versus SNR')
+    ax.set_xlabel('SNR from detections')
+    ax.set_ylabel('Purity')
+    ax.legend(loc=4)
+    plt.show()
+    fig, ax = plt.subplots(figsize=(16, 10))
+    ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    # ax.plot(SNR_range[:-1], pur_wrt_SNR, label='Purity', color='b', lw=2)
+    ax.set_xlim([np.min(SNR_range), 1.1 * np.max(SNR_range)])
+    ax.set_ylim([0, 1.1])
+    ax.set_title('Completeness versus SNR')
+    ax.set_xlabel('SNR from simulations')
+    ax.set_ylabel('Completeness')
     ax.legend(loc=4)
     plt.show()
     '''
@@ -465,8 +475,8 @@ def SNR_SNR(match_file):
     plt.ylabel('SNR (detections)')
     plt.xscale('log')
     plt.yscale('log')
-    plt.xlim([0.1, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
-    plt.ylim([0.1, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
+    plt.xlim([1.0, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
+    plt.ylim([1.0, 1.05 * max(np.max(SNR_sim), np.max(SNR_det))])
     plt.show()
 
 
@@ -622,6 +632,9 @@ def dist_hist(match_file):
         match_file, usecols=(5, 28), unpack=True)
 
     true_positive = (SNR_sim > 0.)
+    true_positive_SNR3 = (SNR_sim > 3.)
+    true_positive_SNR5 = (SNR_sim > 5.)
+    true_positive_SNR10 = (SNR_sim > 10.)
     false_positive = (SNR_sim <= 0.)
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
@@ -633,6 +646,15 @@ def dist_hist(match_file):
     ax1.hist(dist_init_kpc_det[false_positive], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
              histtype='step', color="maroon", lw=3,
              label='Distances [kpc] (false positives)')
+    ax1.hist(dist_init_kpc_det[true_positive_SNR3], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
+             histtype='step', color="lightcoral", lw=2,
+             label='Distances [kpc] (true positives, SNR sim>3)')
+    ax1.hist(dist_init_kpc_det[true_positive_SNR5], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
+             histtype='step', color="teal", lw=2,
+             label='Distances [kpc] (true positives, SNR sim>5)')
+    ax1.hist(dist_init_kpc_det[true_positive_SNR10], bins=20, range=(np.min(dist_init_kpc_det) - 1, np.max(dist_init_kpc_det) + 1),
+             histtype='step', color="silver", lw=2,
+             label='Distances [kpc] (true positives, SNR sim>10)')
     ax1.set_xlabel('Distances [kpc]')
     ax1.set_ylabel('# Clusters')
     ax1.legend()
@@ -659,7 +681,7 @@ def SNR_hist(match_file, unmatch_file):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 10))
     ax1.hist(SNR_sim, bins=50, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
              color="k", lw=2, label='SNR simulations (all)')
-    ax1.hist(SNR_undet, bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
+    ax1.hist(SNR_undet, bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="teal", lw=2, label='SNR undetected clusters')
     # ax1.hist(SNR_det, bins=50, range=(np.min(SNR_det) - 1., np.max(SNR_det) + 1), histtype='step',
     #          color="r", lw=4, label='SNR detections (all)')
     ax2.hist(SNR_det[true_positive], bins=50, range=(np.min(SNR_det) - 1, np.max(SNR_det) + 1), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
@@ -674,10 +696,10 @@ def SNR_hist(match_file, unmatch_file):
     ax2.legend()
 
     ax3.hist(SNR_sim, bins=20, range=(np.min(SNR_det) - 1., 10.), histtype='step',
-             color="k", lw=4, label='SNR simulations (all)')
-    ax3.hist(SNR_undet, bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="teal", lw=4, label='SNR undetected clusters')
+             color="k", lw=2, label='SNR simulations (all)')
+    ax3.hist(SNR_undet, bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="teal", lw=2, label='SNR undetected clusters')
     ax4.hist(SNR_det[true_positive], bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="mediumblue", lw=2, label='SNR detections (true positives)')
-    ax4.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="maroon", lw=3, label='SNR detections (false positives)')
+    ax4.hist(SNR_det[false_positive], bins=20, range=(np.min(SNR_det) - 1, 10.), histtype='step', color="maroon", lw=2, label='SNR detections (false positives)')
     ax3.set_xlabel('SNR (simulations)')
     ax3.set_ylabel('# Clusters')
     ax3.set_yscale('log')
@@ -836,6 +858,8 @@ def plot_masks(input_detection_path, mask_file, param2):
     ax1.set_title('Masks applied to detection')
     ax1.legend()
     plt.show()
+
+    return d_slices_pc
 
 
 def recursive_print_dict(d, indent=0):
