@@ -10,6 +10,31 @@ from astropy.io import ascii
 import tabulate
 
 
+def calc_Nstars_hist(log10_Nsim, log10_rad_sim):
+    """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
+
+    Parameters
+    ----------
+    Mv_sim : list
+        Absolute magnitude of simulated systems in V band.
+    log10_rad_sim : list
+        10-log of half-light radii of simulated systems, in parsecs.
+
+    Returns
+    -------
+    array-like
+        2d histogram of simulations in plane absolute magnitude x half-light radii.
+    """
+    log_Nmin, log_Nmax, r_log_min, r_log_max = 1, 4, 1, 3.1
+
+    n_bins = 13
+
+    H_sim = np.histogram2d(log10_Nsim, log10_rad_sim, bins=[n_bins, n_bins],
+                           range=[[log_Nmin, log_Nmax], [r_log_min, r_log_max]])
+
+    return H_sim[0]
+
+
 def calc_N_hist(Mv_sim, log10_rad_sim):
     """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
 
@@ -193,16 +218,16 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     log10_Nstars = np.log10(Nstars)
 
     cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
-    H1 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    H1 = calc_Nstars_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
 
     cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
-    H2 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    H2 = calc_Nstars_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
     
     cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
-    H3 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    H3 = calc_Nstars_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
     
     cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
-    H4 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    H4 = calc_Nstars_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
 
     N_max_1 = np.max(np.maximum(H1, H2))
     N_max_2 = np.max(np.maximum(H3, H4))
@@ -224,7 +249,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     ax2.set_title(r'15<$(m-M)_0$<20')
     ax2.set_xlim([log10_Nmin, log10_Nmax])
     ax2.set_ylim([r_log_min, r_log_max])
-    ax2.set_xlabel(r'$M_V$')
+    ax3.set_xlabel(r'$log_{10}(N_{stars}[stars])$')
     ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax2.grid(True, lw=0.2)
     im2 = ax2.imshow(np.flipud(H2.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
@@ -246,7 +271,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     ax4.set_title(r'25<$(m-M)_0$<30')
     ax4.set_xlim([log10_Nmin, log10_Nmax])
     ax4.set_ylim([r_log_min, r_log_max])
-    ax4.set_xlabel(r'$M_V$')
+    ax4.set_xlabel(r'$log_{10}(N_{stars}[stars])$')
     ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax4.grid(True, lw=0.2)
     im4 = ax4.imshow(np.flipud(H4.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
@@ -254,8 +279,8 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
 
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
-                      orientation='vertical', label='Number of stars')
-    plt.suptitle('Clusters detected')
+                      orientation='vertical', label='Number of clusters')
+    plt.suptitle('Clusters detected regarding number of stars (Nstars)')
     plt.subplots_adjust(wspace=0.2)
     plt.show()
 
@@ -511,11 +536,13 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
         List with indexes of the simulated clusters that match detections.
     """
 
-    M_V_sim_det = np.loadtxt(match_file, usecols=(24), unpack=True)
+    Nstars_sim_det, M_V_sim_det = np.loadtxt(match_file, usecols=(26, 27), unpack=True)
+
+    log10_Nstars_sim_det = np.log10(Nstars_sim_det)
 
     Nstars, M_V, SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
                                           usecols=(4, 5, 6, 11, 15), unpack=True)
-
+    log10_Nstars = np.log10(Nstars)
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
     plot_comp(dist, idx_sim, 'd (pc) simulated',
               'Completeness wrt Distance (simulations)')
@@ -529,6 +556,8 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     full_N_distances(M_V, 1.7 * r_exp_pc, dist, Nstars)
     full_completeness_distances(
         M_V, M_V_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
+    full_completeness_distances_Nstars(
+        log10_Nstars, log10_Nstars_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
 
 
 def SNR_SNR(match_file):
@@ -1430,6 +1459,37 @@ def plot_clus_position(unmatch_file, ra_str, dec_str, star_cats_path):
             plt.show()
 
 
+def calc_comp_hist_Nstars(log10_Nstars_sim, log10_Nstars_det, log10_rad_sim, log10_rad_det):
+    """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
+
+    Parameters
+    ----------
+    Mv_sim : list
+        Absolute magnitude of simulated systems in V band.
+    Mv_det : list
+        Absolute magnitude of detected systems in V band.
+    log10_rad_sim : list
+        10-log of half-light radii of simulated systems, in parsecs.
+    log10_rad_det : list
+        10-log of half-light radii of detected systems, in parsecs.
+
+    Returns
+    -------
+    array-like
+        2d histogram of detections in plane absolute magnitude x half-light radii.
+    """
+    Nmin, Nmax, r_log_min, r_log_max = 1, 4, 1, 3.1
+
+    n_bins = 13
+
+    H_sim = np.histogram2d(log10_Nstars_sim, log10_rad_sim, bins=[n_bins, n_bins],
+                           range=[[Nmin, Nmax], [r_log_min, r_log_max]])
+    H_det = np.histogram2d(log10_Nstars_det, log10_rad_det, bins=[n_bins, n_bins],
+                           range=[[Nmin, Nmax], [r_log_min, r_log_max]])
+    H_comp = H_det[0] / H_sim[0]
+    return H_comp
+
+
 def calc_comp_hist(Mv_sim, Mv_det, log10_rad_sim, log10_rad_det):
     """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
 
@@ -1460,6 +1520,98 @@ def calc_comp_hist(Mv_sim, Mv_det, log10_rad_sim, log10_rad_det):
     H_comp = H_det[0] / H_sim[0]
     return H_comp
 
+
+def full_completeness_distances_Nstars(log10_Nsim, log10_Ndet, radius_sim, radius_det, dist_sim, dist_sim_det):
+    """Calculates and show the completeness of detections (in 2D histogram)
+    in four bins of distance.
+    Parameters
+    ----------
+    Mv_sim : list
+        Absolute magnitude of simulations.
+    Mv_det : list
+        Absolute magnitude of detections.
+    radius_sim : list
+        Half-light radius of simulations.
+    radius_det : list
+        Half-light radius of detections.
+    dist_sim : list
+        Distance of simulations.
+    dist_sim_det : list
+        Distances of simulated clusters that are detected.
+    """
+    cmap = plt.cm.Blues
+    cmap.set_bad('lightgray', 0.)
+
+    log10_Nmin, log10_Nmax, r_log_min, r_log_max = 1, 4, 1, 3.1
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
+
+    mM_sim = 5. * np.log10(dist_sim) - 5.
+    mM_det = 5. * np.log10(dist_sim_det) - 5.
+
+    cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
+    cond_det = (mM_det > 10.) & (mM_det < 15.)
+
+    H = calc_comp_hist_Nstars(log10_Nsim[cond_sim], log10_Ndet[cond_det],
+                       np.log10(radius_sim[cond_sim]),
+                       np.log10(radius_det[cond_det]))
+    ax1.set_title(r'10<$(m-M)_0$<15')
+    ax1.set_xlim([log10_Nmin, log10_Nmax])
+    ax1.set_ylim([r_log_min, r_log_max])
+    ax1.set_xlabel(r'$log_{10}(N_{stars})$')
+    ax1.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax1.grid(True, lw=0.2)
+    im1 = ax1.imshow(np.flipud(H.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=1.0, interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
+    cond_det = (mM_det > 15.) & (mM_det < 20.)
+
+    H = calc_comp_hist_Nstars(log10_Nsim[cond_sim], log10_Ndet[cond_det], np.log10(radius_sim[cond_sim]),
+                       np.log10(radius_det[cond_det]))
+    ax2.set_title(r'15<$(m-M)_0$<20')
+    ax2.set_xlim([log10_Nmin, log10_Nmax])
+    ax2.set_ylim([r_log_min, r_log_max])
+    ax2.set_xlabel(r'$log_{10}(N_{stars})$')
+    ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax2.grid(True, lw=0.2)
+    im2 = ax2.imshow(np.flipud(H.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=1.0, interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
+    cond_det = (mM_det > 20.) & (mM_det < 25.)
+
+    H = calc_comp_hist_Nstars(log10_Nsim[cond_sim], log10_Ndet[cond_det], np.log10(radius_sim[cond_sim]),
+                       np.log10(radius_det[cond_det]))
+    ax3.set_title(r'20<$(m-M)_0$<25')
+    ax3.set_xlim([log10_Nmin, log10_Nmax])
+    ax3.set_ylim([r_log_min, r_log_max])
+    ax3.set_xlabel(r'$log_{10}(N_{stars})$')
+    ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax3.grid(True, lw=0.2)
+    im3 = ax3.imshow(np.flipud(H.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=1.0, interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
+    cond_det = (mM_det > 25.) & (mM_det < 30.)
+
+    H = calc_comp_hist_Nstars(log10_Nsim[cond_sim], log10_Ndet[cond_det], np.log10(radius_sim[cond_sim]),
+                       np.log10(radius_det[cond_det]))
+    ax4.set_title(r'25<$(m-M)_0$<30')
+    ax4.set_xlim([log10_Nmin, log10_Nmax])
+    ax4.set_ylim([r_log_min, r_log_max])
+    ax4.set_xlabel(r'$log_{10}(N_{stars})$')
+    ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax4.grid(True, lw=0.2)
+    im4 = ax4.imshow(np.flipud(H.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=1.0, interpolation='None', cmap=cmap)
+
+    cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
+    cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
+                      orientation='vertical', label='Completeness wrt Nstars')
+    plt.suptitle('Completeness of detections')
+    plt.subplots_adjust(wspace=0.2)
+    plt.show()
 
 def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim, dist_sim_det):
     """Calculates and show the completeness of detections (in 2D histogram)
