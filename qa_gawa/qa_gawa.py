@@ -228,7 +228,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax2.grid(True, lw=0.2)
     im2 = ax2.imshow(np.flipud(H2.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
-                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+                     vmin=0., vmax=log10_Nmax, interpolation='None', cmap=cmap)
 
     cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
 
@@ -239,7 +239,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax3.grid(True, lw=0.2)
     im3 = ax3.imshow(np.flipud(H3.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
-                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+                     vmin=0., vmax=log10_Nmax, interpolation='None', cmap=cmap)
 
     cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
 
@@ -250,7 +250,7 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
     ax4.grid(True, lw=0.2)
     im4 = ax4.imshow(np.flipud(H4.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
-                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+                     vmin=0., vmax=log10_Nmax, interpolation='None', cmap=cmap)
 
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
