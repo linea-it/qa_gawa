@@ -35,7 +35,7 @@ def calc_N_hist(Mv_sim, log10_rad_sim):
     return H_sim[0]
 
 
-def full_N_distances(Mv_sim, radius_sim, dist_sim):
+def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     """Calculates and show the completeness of detections (in 2D histogram)
     in four bins of distance.
 
@@ -181,6 +181,81 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim):
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
                       orientation='vertical', label='Sample of simulations')
     plt.suptitle('Clusters simulated')
+    plt.subplots_adjust(wspace=0.2)
+    plt.show()
+
+    # Nstars
+
+    log10_Nmin, log10_Nmax, r_log_min, r_log_max = 1, 4, 1, 3.1
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
+
+    log10_Nstars = np.log10(Nstars)
+
+    cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
+    H1 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+
+    cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
+    H2 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    
+    cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
+    H3 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+    
+    cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
+    H4 = calc_N_hist(log10_Nstars[cond_sim], np.log10(radius_sim[cond_sim]))
+
+    N_max_1 = np.max(np.maximum(H1, H2))
+    N_max_2 = np.max(np.maximum(H3, H4))
+    N_max = max(N_max_1, N_max_2)
+
+    cond_sim = (mM_sim > 10.) & (mM_sim < 15.)
+
+    ax1.set_title(r'10<$(m-M)_0$<15')
+    ax1.set_xlim([log10_Nmin, log10_Nmax])
+    ax1.set_ylim([r_log_min, r_log_max])
+    ax1.set_xlabel(r'$log_{10}(N_{stars}[stars])$')
+    ax1.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax1.grid(True, lw=0.2)
+    im1 = ax1.imshow(np.flipud(H1.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
+
+    ax2.set_title(r'15<$(m-M)_0$<20')
+    ax2.set_xlim([log10_Nmin, log10_Nmax])
+    ax2.set_ylim([r_log_min, r_log_max])
+    ax2.set_xlabel(r'$M_V$')
+    ax2.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax2.grid(True, lw=0.2)
+    im2 = ax2.imshow(np.flipud(H2.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
+
+    ax3.set_title(r'20<$(m-M)_0$<25')
+    ax3.set_xlim([log10_Nmin, log10_Nmax])
+    ax3.set_ylim([r_log_min, r_log_max])
+    ax3.set_xlabel(r'$log_{10}(N_{stars}[stars])$')
+    ax3.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax3.grid(True, lw=0.2)
+    im3 = ax3.imshow(np.flipud(H3.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+
+    cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
+
+    ax4.set_title(r'25<$(m-M)_0$<30')
+    ax4.set_xlim([log10_Nmin, log10_Nmax])
+    ax4.set_ylim([r_log_min, r_log_max])
+    ax4.set_xlabel(r'$M_V$')
+    ax4.set_ylabel(r'$log_{10}(r_{1/2}[pc])$')
+    ax4.grid(True, lw=0.2)
+    im4 = ax4.imshow(np.flipud(H4.T), extent=[log10_Nmin, log10_Nmax, r_log_min, r_log_max], aspect='auto',
+                     vmin=0., vmax=N_max, interpolation='None', cmap=cmap)
+
+    cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
+    cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
+                      orientation='vertical', label='Number of stars')
+    plt.suptitle('Clusters detected')
     plt.subplots_adjust(wspace=0.2)
     plt.show()
 
@@ -438,8 +513,8 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
 
     M_V_sim_det = np.loadtxt(match_file, usecols=(24), unpack=True)
 
-    M_V, SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
-                                          usecols=(5, 6, 11, 15), unpack=True)
+    Nstars, M_V, SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
+                                          usecols=(4, 5, 6, 11, 15), unpack=True)
 
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
     plot_comp(dist, idx_sim, 'd (pc) simulated',
@@ -451,7 +526,7 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(
         match_file, usecols=(33, 27, 37), unpack=True)
     
-    full_N_distances(M_V, 1.7 * r_exp_pc, dist)
+    full_N_distances(M_V, 1.7 * r_exp_pc, dist, Nstars)
     full_completeness_distances(
         M_V, M_V_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
 
