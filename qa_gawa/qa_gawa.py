@@ -895,10 +895,10 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
     idx_sim, idx_det, d2d, d3d = C_det.search_around_sky(
         C_sim, sep_arcmin_max*u.arcmin)
 
-    cond = d2d < sep_arcmin*u.arcmin
-
+    cond = [d2d[ii] < sep_arcmin[jj]*u.arcmin for ii, jj in enumerate(idx_sim)]
     idx_sim = [idx_sim[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
-    idx_det = [idx_det[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
+    idx_det = [idx_det[ii] for ii, jj in enumerate(idx_det) if cond[ii]]
+    d2d = [d2d[ii] for ii, jj in enumerate(d2d) if cond[ii]]
 
     idx_det_outliers = [i for i in range(len(data_det)) if i not in idx_det]
 
