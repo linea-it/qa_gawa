@@ -25,7 +25,7 @@ def calc_Nstars_hist(log10_Nsim, log10_rad_sim):
     array-like
         2d histogram of simulations in plane absolute magnitude x half-light radii.
     """
-    log_Nmin, log_Nmax, r_log_min, r_log_max = 1, 4, 1, 3.1
+    log_Nmin, log_Nmax, r_log_min, r_log_max = 0, 4, 1, 3.1
 
     n_bins = 13
 
@@ -852,7 +852,7 @@ def write_det_numbers(input_simulation_path, match_file, unmatch_file):
     print('Total of clusters undetected: {:d}.'.format(len(ra_undet)))
 
 
-def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin):
+def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
     """Matches the detections and simulations, and writes matched and unmatched files.
 
     Parameters
@@ -881,12 +881,24 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     data_sim = ascii.read(sim_file)
     ra_sim = data_sim["9-ra"]
     dec_sim = data_sim["10-dec"]
+    dist_pc = data_sim["15-dist"]
+    rexp_pc = data_sim["11-r_exp"]
+    hlr_arcmin = 60. * (180. / np.pi) * np.arctan(1.7 * rexp_pc / (dist_pc))
+
+    sep_arcmin = N_times_hlr * hlr_arcmin
+
+    sep_arcmin_max = np.max(sep_arcmin)
 
     C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
     C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
 
     idx_sim, idx_det, d2d, d3d = C_det.search_around_sky(
-        C_sim, dist2match_arcmin*u.arcmin)
+        C_sim, sep_arcmin_max*u.arcmin)
+
+    cond = d2d < sep_arcmin*u.arcmin
+
+    idx_sim = [idx_sim[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
+    idx_det = [idx_det[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
 
     idx_det_outliers = [i for i in range(len(data_det)) if i not in idx_det]
 
