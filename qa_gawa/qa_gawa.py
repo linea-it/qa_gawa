@@ -471,40 +471,50 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
     SNR_sim_all, ra_sim = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
                         usecols=(6, 9), unpack=True)
 
+    SNR_un = np.loadtxt(unmatch_file, usecols=(6), unpack=True)
+
     true_positive = (det == 1.)
 
-    SNR_range = np.arange(np.min(SNR_sim_all), np.max(SNR_sim_all), 10.)
+    SNR_range = np.arange(np.min(SNR_sim_all), np.max(SNR_sim_all), 5.)
 
     comp_wrt_SNR = np.zeros(len(SNR_range)-1)
     pur_wrt_SNR = np.zeros(len(SNR_range)-1)
+    n_clus_pur = np.zeros(len(SNR_range)-1)
+    n_clus_comp = np.zeros(len(SNR_range)-1)
 
     for k, i, j in zip(range(len(SNR_range)-1), SNR_range[0:-1], SNR_range[1:]):
         # put here a constrint to minimum and maximum
         if len(SNR_det[(SNR_det > i) & (SNR_det < j)]) > 0:
             pur_wrt_SNR[k] = len(SNR_det[(true_positive) & (
             SNR_det > i) & (SNR_det < j)]) / len(SNR_det[(SNR_det > i) & (SNR_det < j)])
-        if len(SNR_sim[(SNR_sim > i)&(SNR_sim < j)]) > 0:
-            comp_wrt_SNR[k] = len(SNR_sim[(true_positive) & (
-            SNR_det > i) & (SNR_det < j)]) / len(SNR_sim_all[(SNR_sim_all > i)&(SNR_sim_all < j)])
+            n_clus_pur[k] = len(SNR_det[(SNR_det > i) & (SNR_det < j)])
+        if len(SNR_sim_all[(SNR_sim_all > i)&(SNR_sim_all < j)]) > 0:
+            comp_wrt_SNR[k] = 1. - (len(SNR_un[(SNR_un > i) & (SNR_un < j)]) / float(len(SNR_sim_all[(SNR_sim_all > i)&(SNR_sim_all < j)])))
+            n_clus_comp[k] = len(SNR_sim_all[(SNR_sim_all > i) & (SNR_sim_all < j)])
 
-    comp_wrt_SNR[comp_wrt_SNR > 1.] = 1.
+    # comp_wrt_SNR[comp_wrt_SNR > 1.] = 1.
 
     fig, ax = plt.subplots(figsize=(16, 10))
     # ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
     ax.plot(SNR_range[:-1], pur_wrt_SNR, label='Purity', color='b', lw=2)
+    for ii in range(len(SNR_range[:-1])):
+        ax.text(SNR_range[ii], 1.05, str(int(n_clus_pur[ii])), color='grey', horizontalalignment='center')
     ax.set_xlim([np.min(SNR_range), 1.1 * np.max(SNR_range)])
     ax.set_ylim([0, 1.1])
-    ax.set_title('Purity versus SNR')
+    ax.set_title('Purity versus SNR from detections (amount of detected clusters as numbers in plot)')
     ax.set_xlabel('SNR from detections')
     ax.set_ylabel('Purity')
     ax.legend(loc=4)
     plt.show()
     fig, ax = plt.subplots(figsize=(16, 10))
     ax.plot(SNR_range[:-1], comp_wrt_SNR, label='Completeness', color='r', lw=2)
+    for ii in range(len(SNR_range[:-1])):
+        ax.text(SNR_range[ii], 1.05, str(int(n_clus_comp[ii])), color='grey', horizontalalignment='center')
     # ax.plot(SNR_range[:-1], pur_wrt_SNR, label='Purity', color='b', lw=2)
+    #ax.plot(SNR_range[:-1], n_clus_comp, label='Sample in bin', color='grey', lw=1)
     ax.set_xlim([np.min(SNR_range), 1.1 * np.max(SNR_range)])
     ax.set_ylim([0, 1.1])
-    ax.set_title('Completeness versus SNR')
+    ax.set_title('Completeness versus SNR from simulations (amount of simulated cluster as numbers in plot)')
     ax.set_xlabel('SNR from simulations')
     ax.set_ylabel('Completeness')
     ax.legend(loc=4)
@@ -543,8 +553,10 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     Nstars, M_V, SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
                                           usecols=(4, 5, 6, 11, 15), unpack=True)
     log10_Nstars = np.log10(Nstars)
+
+    dist /= 1000.
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
-    plot_comp(dist, idx_sim, 'd (pc) simulated',
+    plot_comp(dist, idx_sim, 'd (kpc) simulated',
               'Completeness wrt Distance (simulations)')
     plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
     mM_sim = 5 * np.log10(dist) - 5.
@@ -816,7 +828,7 @@ def SNR_hist(match_file, unmatch_file):
     plt.show()
 
 
-def write_det_numbers(input_simulation_path, match_file, unmatch_file):
+def  write_det_numbers(input_simulation_path, match_file, unmatch_file):
     """Writes a few numbers informing the user about the detection counts, simulations, etc.
 
     Parameters
@@ -835,7 +847,7 @@ def write_det_numbers(input_simulation_path, match_file, unmatch_file):
     ra_sim = np.loadtxt(input_simulation_path +
                         '/star_clusters_simulated.dat', usecols=(9), unpack=True)
 
-    ra_undet = np.loadtxt(unmatch_file, usecols=(9), unpack=True)
+    n_f, ra_undet = np.loadtxt(unmatch_file, usecols=(4, 9), unpack=True)
 
     true_positive = (SNR_sim > 0.)
 
@@ -850,6 +862,7 @@ def write_det_numbers(input_simulation_path, match_file, unmatch_file):
     print('Total of clusters detected with SNR > 10: {:d}.'.format(
         len(np.unique(HPX64[(true_positive) & (SNR_det > 10.)]))))
     print('Total of clusters undetected: {:d}.'.format(len(ra_undet)))
+    print('Total of clusters undetected with more than 1 star: {:d}.'.format(len(ra_undet[n_f > 0.])))
 
 
 def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
@@ -939,7 +952,7 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
         print(i, sep=' ', file=file_unmatch, end='')
     file_unmatch.close()
 
-    return idx_sim, idx_det
+    return idx_sim, idx_det, idx_not_det
 
 
 def plot_masks(input_detection_path, mask_file, param2):
