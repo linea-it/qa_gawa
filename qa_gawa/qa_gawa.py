@@ -121,11 +121,11 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax1.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax1.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
     cond_DG = (mM_DG > 15.) & (mM_DG < 20.)
@@ -146,11 +146,11 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax2.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax2.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
     cond_DG = (mM_DG > 20.) & (mM_DG < 25.)
@@ -172,11 +172,11 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax3.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax3.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
     cond_DG = (mM_DG > 25.) & (mM_DG < 30.)
     cond_GC = (mM_GC > 25.) & (mM_GC < 30.)
@@ -196,15 +196,15 @@ def full_N_distances(Mv_sim, radius_sim, dist_sim, Nstars):
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax4.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax4.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
-                      orientation='vertical', label='Sample of simulations')
+                      orientation='vertical', label='Clusters simulated')
     plt.suptitle('Clusters simulated')
     plt.subplots_adjust(wspace=0.2)
     plt.show()
@@ -446,12 +446,17 @@ def plot_pure_mM(input_detection_path, match_file):
     bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] +
                           bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
 
+    dist_kpc_min = d_slices_pc[0]/1000
+    dist_kpc_max = d_slices_pc[-1]/1000
+    bins_dist = np.linspace(dist_kpc_min, dist_kpc_max, len(d_slices_pc), endpoint=True)
     true_positive = (det == 1.)
 
     dist_kpc_det = np.loadtxt(match_file, usecols=(5), unpack=True)
 
     m_M_det = 5 * np.log10(dist_kpc_det) + 10.
 
+    plot_pure(dist_kpc_det, dist_kpc_det[true_positive], 'Detection distance (kpc)',
+              'Purity wrt distance (kpc)', bins_dist)
     plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module',
               'Purity wrt Distance Modulus (detection)', bins_mM)
 
@@ -554,12 +559,12 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
                                           usecols=(4, 5, 6, 11, 15), unpack=True)
     log10_Nstars = np.log10(Nstars)
 
-    dist /= 1000.
+    dist_kpc = dist/1000.
     plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
-    plot_comp(dist, idx_sim, 'd (kpc) simulated',
+    plot_comp(dist_kpc, idx_sim, 'd (kpc) simulated',
               'Completeness wrt Distance (simulations)')
     plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
-    mM_sim = 5 * np.log10(dist) - 5.
+    mM_sim = 5 * np.log10(dist_kpc) + 10.
 
     plot_comp(mM_sim, idx_sim, 'm-M', 'Completeness wrt Distance modulus')
     exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(
@@ -892,26 +897,35 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
     dec_det = data_det["dec"]
 
     data_sim = ascii.read(sim_file)
+    N_f_sim = data_sim["4-N_f"]
     ra_sim = data_sim["9-ra"]
     dec_sim = data_sim["10-dec"]
     dist_pc = data_sim["15-dist"]
     rexp_pc = data_sim["11-r_exp"]
     hlr_arcmin = 60. * (180. / np.pi) * np.arctan(1.7 * rexp_pc / (dist_pc))
 
-    sep_arcmin = N_times_hlr * hlr_arcmin
+    # cond_ = (N_f_sim >= 1)
+    # ra_sim, dec_sim, dist_pc, rexp_pc, hlr_arcmin = ra_sim[cond_], dec_sim[cond_], dist_pc[cond_], rexp_pc[cond_], hlr_arcmin[cond_]
 
-    sep_arcmin_max = np.max(sep_arcmin)
+    # sep_arcmin = N_times_hlr * hlr_arcmin
+
+    # sep_arcmin_max = np.max(sep_arcmin)
+    sep_arcmin_max = 4.
 
     C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
     C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
 
     idx_sim, idx_det, d2d, d3d = C_det.search_around_sky(
         C_sim, sep_arcmin_max*u.arcmin)
-
+    '''
     cond = [d2d[ii] < sep_arcmin[jj]*u.arcmin for ii, jj in enumerate(idx_sim)]
     idx_sim = [idx_sim[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
     idx_det = [idx_det[ii] for ii, jj in enumerate(idx_det) if cond[ii]]
     d2d = [d2d[ii] for ii, jj in enumerate(d2d) if cond[ii]]
+    '''
+    idx_sim = [idx_sim[ii] for ii, jj in enumerate(idx_sim)]
+    idx_det = [idx_det[ii] for ii, jj in enumerate(idx_det)]
+    d2d = [d2d[ii] for ii, jj in enumerate(d2d)]
 
     idx_det_outliers = [i for i in range(len(data_det)) if i not in idx_det]
 
@@ -1692,11 +1706,11 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax1.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax1.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
     cond_det = (mM_det > 15.) & (mM_det < 20.)
@@ -1720,11 +1734,11 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax2.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax2.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cond_sim = (mM_sim > 20.) & (mM_sim < 25.)
     cond_det = (mM_det > 20.) & (mM_det < 25.)
@@ -1749,11 +1763,11 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax3.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax3.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
     cond_det = (mM_det > 25.) & (mM_det < 30.)
     cond_DG = (mM_DG > 25.) & (mM_DG < 30.)
@@ -1776,11 +1790,11 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     for i, j in enumerate(rhl_pc_DG):
         if cond_DG[i]:
             ax4.annotate(name_DG[i], (Mv_DG[i], np.log10(
-                rhl_pc_DG[i])), color='darkmagenta')
+                rhl_pc_DG[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
     for i, j in enumerate(rhl_pc_GC):
         if cond_GC[i]:
             ax4.annotate(name_GC[i], (Mv_GC[i], np.log10(
-                rhl_pc_GC[i])), color='darkmagenta')
+                rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
 
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
@@ -1898,4 +1912,13 @@ def plot_comp(arg, idxs, label, title):
        ax2.set_xlim([np.min(arg[np.abs(arg) < 30]), np.max(arg[np.abs(arg) < 30])])
     ax2.legend()
     fig.suptitle(title)
+    plt.show()
+
+def hlr_hlr(matched_file):
+    wradius, rexp, dist = np.loadtxt(matched_file, usecols=(11, 33, 37), unpack=True)
+    hlr_arcmin = 60. * (180. / np.pi) * np.arctan(1.7 * rexp / (dist))
+
+    plt.scatter(wradius, hlr_arcmin)
+    plt.xlabel('wradius (arcmin) from detections')
+    plt.ylabel('half-light radius (arcmin)')
     plt.show()

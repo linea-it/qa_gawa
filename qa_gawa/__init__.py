@@ -20,5 +20,6 @@ from qa_gawa.qa_gawa import (
     plot_comp_all,
     print_undet_table,
     print_undet_table_tail,
-    undet_cmds
+    undet_cmds,
+    hlr_hlr
 )
