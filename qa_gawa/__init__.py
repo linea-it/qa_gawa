@@ -21,5 +21,6 @@ from qa_gawa.qa_gawa import (
     print_undet_table,
     print_undet_table_tail,
     undet_cmds,
-    hlr_hlr
+    hlr_hlr,
+    compare_filtering
 )

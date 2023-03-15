@@ -424,7 +424,7 @@ def plot_pure_SNR(match_file, SNR_min):
               bins)
 
 
-def plot_pure_mM(input_detection_path, match_file):
+def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5]):
     """_summary_
 
     Parameters
@@ -435,7 +435,7 @@ def plot_pure_mM(input_detection_path, match_file):
        File name of the detected clusters.
     """
 
-    SNR_sim, det = np.loadtxt(match_file, usecols=(28, 38), unpack=True)
+    dist_kpc_det, SNR_sim, det = np.loadtxt(match_file, usecols=(5, 28, 38), unpack=True)
 
     slices_file = input_detection_path + '/dslices.fits'
     data_sl = getdata(slices_file)
@@ -451,14 +451,13 @@ def plot_pure_mM(input_detection_path, match_file):
     bins_dist = np.linspace(dist_kpc_min, dist_kpc_max, len(d_slices_pc), endpoint=True)
     true_positive = (det == 1.)
 
-    dist_kpc_det = np.loadtxt(match_file, usecols=(5), unpack=True)
-
     m_M_det = 5 * np.log10(dist_kpc_det) + 10.
 
-    plot_pure(dist_kpc_det, dist_kpc_det[true_positive], 'Detection distance (kpc)',
-              'Purity wrt distance (kpc)', bins_dist)
-    plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module',
-              'Purity wrt Distance Modulus (detection)', bins_mM)
+    for i in SNR_limit:
+        plot_pure(dist_kpc_det, dist_kpc_det[true_positive], 'Detection distance (kpc)',
+                  'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i), bins_dist)
+        #plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module',
+        #          'Purity wrt Distance Modulus (detection)', bins_mM)
 
 
 def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_file):
@@ -560,21 +559,21 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
     log10_Nstars = np.log10(Nstars)
 
     dist_kpc = dist/1000.
-    plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
+    # plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
     plot_comp(dist_kpc, idx_sim, 'd (kpc) simulated',
               'Completeness wrt Distance (simulations)')
-    plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
+    # plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
     mM_sim = 5 * np.log10(dist_kpc) + 10.
 
-    plot_comp(mM_sim, idx_sim, 'm-M', 'Completeness wrt Distance modulus')
+    # plot_comp(mM_sim, idx_sim, 'm-M', 'Completeness wrt Distance modulus')
     exp_rad_sim_det, M_V_sim_det, dist_sim_det = np.loadtxt(
         match_file, usecols=(33, 27, 37), unpack=True)
     
-    full_N_distances(M_V, 1.7 * r_exp_pc, dist, Nstars)
+    # full_N_distances(M_V, 1.7 * r_exp_pc, dist, Nstars)
     full_completeness_distances(
         M_V, M_V_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
-    full_completeness_distances_Nstars(
-        log10_Nstars, log10_Nstars_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
+    # full_completeness_distances_Nstars(
+    #    log10_Nstars, log10_Nstars_sim_det, 1.7 * r_exp_pc, 1.7 * exp_rad_sim_det, dist, dist_sim_det)
 
 
 def SNR_SNR(match_file):
@@ -623,18 +622,25 @@ def dist_dist(match_file):
     plt.plot(np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4),
              np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4), color='r')
     dist_sim_kpc_bin = np.linspace(np.min(dist_sim_kpc), np.max(dist_sim_kpc), 6, endpoint=True)
-    for ii in range(len(dist_sim_kpc_bin)-1):
-        data_x = (dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.
-        data_y = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_sim_kpc < dist_sim_kpc_bin[ii+1])]
+    #for ii in range(len(dist_sim_kpc_bin)-1):
+    #    data_x = (dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.
+    #    data_y = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_sim_kpc < dist_sim_kpc_bin[ii+1])]
 
-        plt.boxplot(data_y, 0, positions=[data_x], widths=50, bootstrap=None)
+    #    plt.boxplot(data_y, 0, positions=[data_x], widths=50, bootstrap=None)
+    plt.scatter(dist_sim_kpc, dist_init_kpc_det)
     plt.xlim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
              1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    #plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
-    #         max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    plt.title('Comparing recovery distances (minimum / first quartile / median / last quartile / maximum)')
+    plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
+             max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
+    plt.title('Comparing recovery distances')
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('Distances (kpc) from detections')
+    plt.show()
+
+    plt.scatter(dist_sim_kpc, (dist_init_kpc_det - dist_sim_kpc) / dist_sim_kpc)
+    plt.title('Comparing simulated and recovery distances')
+    plt.xlabel('Distances (kpc) from simulations')
+    plt.ylabel('(Distance from detection - dist(sim)) / dist (sim)')
     plt.show()
 
 
@@ -1917,8 +1923,23 @@ def plot_comp(arg, idxs, label, title):
 def hlr_hlr(matched_file):
     wradius, rexp, dist = np.loadtxt(matched_file, usecols=(11, 33, 37), unpack=True)
     hlr_arcmin = 60. * (180. / np.pi) * np.arctan(1.7 * rexp / (dist))
-
+    
+    fig = plt.figure(figsize=(16, 10))
+    plt.plot(np.linspace(0.001, 1.1 * np.max(hlr_arcmin), 4),
+             np.linspace(0.001, 1.1 * np.max(hlr_arcmin), 4), color='r')
     plt.scatter(wradius, hlr_arcmin)
     plt.xlabel('wradius (arcmin) from detections')
     plt.ylabel('half-light radius (arcmin)')
+    plt.xlim([0, 20])
+    plt.ylim([0, 20])
     plt.show()
+
+def compare_filtering(file_sim_clus):
+    N, N_f = np.loadtxt(file_sim_clus, usecols=(1,4), unpack=True)
+    perc = 100*N_f / N
+    plt.hist(perc, bins=40)
+    plt.xlabel('Percentage of remaining stars (after filtering)')
+    plt.ylabel('#Clusters')
+    plt.xlim([0,100])
+    plt.show()
+
