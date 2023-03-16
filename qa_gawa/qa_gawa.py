@@ -10,6 +10,94 @@ from astropy.io import ascii
 import tabulate
 
 
+def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, match_file, idx_sim, SNR_limit=[3,5,10]):
+
+    SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
+                                     usecols=(6, 11, 15), unpack=True)
+    dist_kpc = dist/1000.
+
+    dist_kpc_det, SNR_det, SNR_sim, dist_sim_det, det = np.loadtxt(match_file, usecols=(5, 12, 28, 37, 38), unpack=True)
+
+    dist_sim_det_kpc = dist_sim_det / 1000.
+    slices_file = input_detection_path + '/dslices.fits'
+    data_sl = getdata(slices_file)
+    d_slices_pc = data_sl["dist_pc"]
+    mM_slices = 5 * np.log10(d_slices_pc) - 5.
+
+    bin_size_mM = mM_slices[1] - mM_slices[0]
+    bins_mM = np.linspace(mM_slices[0] - bin_size_mM / 2, mM_slices[-1] +
+                         bin_size_mM / 2, len(mM_slices) + 1, endpoint=True)
+
+    dist_kpc_min = d_slices_pc[0]/1000
+    dist_kpc_max = d_slices_pc[-1]/1000
+    bins_dist = np.linspace(dist_kpc_min, dist_kpc_max, len(d_slices_pc), endpoint=True)
+    true_positive = (det == 1.)
+
+    m_M_det = 5 * np.log10(dist_kpc_det) + 10.
+
+    for i in SNR_limit:
+    
+        arg_all = dist_kpc_det[(SNR_det > i)]
+        arg_conf = dist_kpc_det[(true_positive)&(SNR_det > i)]
+        label = 'Detection distance (kpc)'
+        title = 'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i)
+        bins = bins_dist
+
+        over = (max(np.max(arg_all), np.max(arg_conf)) -
+                min(np.min(arg_all), np.min(arg_conf))) * 0.1
+        min_ = min(np.min(arg_all), np.min(arg_conf)) - over
+        max_ = max(np.max(arg_all), np.max(arg_conf)) + over
+
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(30, 6))
+        A = ax1.hist(arg_all, bins=bins, range=(
+            np.min(arg_all), np.max(arg_all)), histtype='step', lw=2, label='All detections (not matched in position)')
+        B = ax1.hist(arg_conf, bins=bins, range=(
+            np.min(arg_all), np.max(arg_all)), histtype='stepfilled', lw=2, label='Simulated clusters')
+        pureness = B[0] / A[0]
+
+        ax1.set_xlabel(label)
+        ax1.set_ylabel('Number of clusters detected')
+        ax1.set_xlim([min_, max_])
+        ax1.legend(loc=1)
+   
+        ax2.step(bins, np.append(pureness[0], pureness), 'b', lw=2, label='Data')
+        ax2.set_xlabel(label)
+        ax2.set_ylabel('Purity')
+        ax2.set_ylim([0, 1.2])
+        ax2.set_xlim([min_, max_])
+        ax2.set_title(title)
+        ax2.legend()
+        
+        dist_sim_det_kpc = [jj for ii, jj in enumerate(dist_sim_det_kpc) if SNR_det[ii] > i]
+        arg = dist_kpc
+        idxs = [ii for ii in idx_sim]
+        # idxs = np.unique(idxs)
+        label = 'd (kpc) simulated'
+        title = 'Completeness wrt distance from simulations for SNR(det)>{:.1f}'.format(i)
+        bins = 20 #bins_dist
+        step = (np.max(arg) - np.min(arg)) / bins
+        A = ax3.hist(dist_sim_det_kpc, bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
+                     lw=2, color="b", label='All detections matched to simulations')
+        B = ax3.hist(arg, bins=bins, range=(np.min(arg), np.max(arg)), histtype='stepfilled',
+                     lw=2, color="orange", label='Simulated clusters')
+        completeness = A[0] / B[0]
+        completeness[completeness >= 1.] = 1.
+        # Only to set steps equal to zero where the completeness does not have results.
+        # Warning: the values replaced by zero are those ones where the completeness in undetermined.
+        compl = np.append(0., np.nan_to_num(completeness))
+        ax3.set_xlabel(label)
+        ax3.set_ylabel('# Detections matched to simulated clusters')
+        ax3.legend()
+        ax4.step(np.append(A[1][0] - step, A[1]),
+                 np.append(compl, 0), 'r', label='Data', where='mid')
+        ax4.set_xlabel(label)
+        ax4.set_ylabel('Completeness')
+        ax4.set_ylim([0, 1.1])
+        ax4.legend()
+        ax4.set_title(title)
+        plt.show()
+
+
 def calc_Nstars_hist(log10_Nsim, log10_rad_sim):
     """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
 
@@ -424,7 +512,7 @@ def plot_pure_SNR(match_file, SNR_min):
               bins)
 
 
-def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5]):
+def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5,10]):
     """_summary_
 
     Parameters
@@ -435,7 +523,7 @@ def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5]):
        File name of the detected clusters.
     """
 
-    dist_kpc_det, SNR_sim, det = np.loadtxt(match_file, usecols=(5, 28, 38), unpack=True)
+    dist_kpc_det, SNR_det, SNR_sim, det = np.loadtxt(match_file, usecols=(5, 12, 28, 38), unpack=True)
 
     slices_file = input_detection_path + '/dslices.fits'
     data_sl = getdata(slices_file)
@@ -454,7 +542,8 @@ def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5]):
     m_M_det = 5 * np.log10(dist_kpc_det) + 10.
 
     for i in SNR_limit:
-        plot_pure(dist_kpc_det, dist_kpc_det[true_positive], 'Detection distance (kpc)',
+        plot_pure(dist_kpc_det[(SNR_det > i)], dist_kpc_det[(true_positive)&(SNR_det > i)],
+                  'Detection distance (kpc)',
                   'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i), bins_dist)
         #plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module',
         #          'Purity wrt Distance Modulus (detection)', bins_mM)
@@ -560,8 +649,8 @@ def plot_comp_all(input_simulation_path, match_file, idx_sim):
 
     dist_kpc = dist/1000.
     # plot_comp(M_V, idx_sim, 'M_V', 'Absolute Magnitude in V band')
-    plot_comp(dist_kpc, idx_sim, 'd (kpc) simulated',
-              'Completeness wrt Distance (simulations)')
+    #plot_comp(dist_kpc, idx_sim, 'd (kpc) simulated',
+    #          'Completeness wrt Distance (simulations)')
     # plot_comp(SNR, idx_sim, 'SNR from simulations', 'Completeness wrt SNR from simulations')
     mM_sim = 5 * np.log10(dist_kpc) + 10.
 
@@ -637,10 +726,15 @@ def dist_dist(match_file):
     plt.ylabel('Distances (kpc) from detections')
     plt.show()
 
-    plt.scatter(dist_sim_kpc, (dist_init_kpc_det - dist_sim_kpc) / dist_sim_kpc)
+    fig = plt.figure(figsize=(16, 10))
+    shift = (dist_init_kpc_det - dist_sim_kpc) / dist_sim_kpc
+    plt.scatter(dist_sim_kpc, shift)
     plt.title('Comparing simulated and recovery distances')
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('(Distance from detection - dist(sim)) / dist (sim)')
+    plt.xlim([0.9 * np.min(dist_sim_kpc),
+             1.2 * np.max(dist_sim_kpc)])
+    plt.ylim([-2,2])
     plt.show()
 
 
@@ -941,11 +1035,11 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
     for i, j in zip(idx_sim, idx_det):
         print(*data_det[:][j], *data_sim[i], '1', 
               sep=' ', file=file_match, end='\n')
-
+    
     for i in (idx_det_outliers):
         print(*data_det[i], ' -99.999 ' * len(data_sim[1]), '0',
               sep=' ', file=file_match, end='\n')
-
+    
     file_match.close()
 
     idx_not_det = [i for i in range(len(data_sim)) if i not in idx_sim]
@@ -993,18 +1087,27 @@ def plot_masks(input_detection_path, mask_file, param2):
     d_slices_pc = data_sl["dist_pc"]
     mM_slices = 5 * np.log10(d_slices_pc) - 5.
 
-    gr, g = np.loadtxt(mask_file, usecols=(0, 1), unpack=True)
+    gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+
+    mag_g, err_g = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_g'], usecols=(0,1), unpack=True)
+    mag_r, err_r = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_r'], usecols=(0,1), unpack=True)
+    
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
     for i in range(len(mM_slices)):
+        err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(g+mM_slices[i], mag_r, err_r) ** 2.)
+        gr[kind == 0.] -= err_gr[kind == 0.]
+        gr[kind == 1.] += err_gr[kind == 1.]
+
         ax1.plot(gr, g + mM_slices[i], label='m-M={:.2f}'.format(mM_slices[i]))
+
     ax1.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
                  param2['isochrone_masks'][param2['survey']]['mask_color_max'])
     ax1.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
                  param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
     ax1.set_xlabel(r'$g_0-r_0$')
     ax1.set_ylabel(r'$g_0$')
-    ax1.set_title('Masks applied to detection')
+    ax1.set_title('Masks applied to detection (1-sigma errors included)')
     ax1.legend()
     plt.show()
 
@@ -1697,7 +1800,8 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
 
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
-    ax1.set_title(r'10<$(m-M)_0$<15')
+    # ax1.set_title(r'10<$(m-M)_0$<15')
+    ax1.set_title(r'1 kpc<$d$<10 kpc')
     ax1.set_xlim([Mmin, Mmax])
     ax1.set_ylim([r_log_min, r_log_max])
     ax1.set_xlabel(r'$M_V$')
@@ -1725,7 +1829,8 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
 
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
-    ax2.set_title(r'15<$(m-M)_0$<20')
+    # ax2.set_title(r'15<$(m-M)_0$<20')
+    ax2.set_title(r'10 kpc<$d$<100 kpc')
     ax2.set_xlim([Mmin, Mmax])
     ax2.set_ylim([r_log_min, r_log_max])
     ax2.set_xlabel(r'$M_V$')
@@ -1753,7 +1858,8 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
 
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
-    ax3.set_title(r'20<$(m-M)_0$<25')
+    # ax3.set_title(r'20<$(m-M)_0$<25')
+    ax3.set_title(r'100 kpc<$d$<1 Mpc')
     ax3.set_xlim([Mmin, Mmax])
     ax3.set_ylim([r_log_min, r_log_max])
     ax3.set_xlabel(r'$M_V$')
@@ -1781,7 +1887,8 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
 
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
-    ax4.set_title(r'25<$(m-M)_0$<30')
+    # ax4.set_title(r'25<$(m-M)_0$<30')
+    ax4.set_title(r'1 Mpc<$d$<10 Mpc')
     ax4.set_xlim([Mmin, Mmax])
     ax4.set_ylim([r_log_min, r_log_max])
     ax4.set_xlabel(r'$M_V$')
