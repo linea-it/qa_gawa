@@ -4,5 +4,5 @@
     "match_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00056/detections/qa/match.dat",
     "unmatch_file": "/lustre/t1/cl/lsst/gawa_project/adriano.pieres/gawa_processes/00056/detections/qa/unmatch.dat",
     "copy_dir": "/home/adriano.pieres/public_html/gawa_processes/00056/detections/qa",
-    "dist2match_n_hlr": 2.00 
+    "dist2match_arcmin": 4.00 
 }

@@ -10,11 +10,13 @@ from astropy.io import ascii
 import tabulate
 
 
-def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, match_file, idx_sim, SNR_limit=[3,5,10]):
+def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, match_file, unmatch_file, idx_sim, SNR_limit=[3,5,10]):
 
     SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
                                      usecols=(6, 11, 15), unpack=True)
     dist_kpc = dist/1000.
+
+    SNR_un = np.loadtxt(unmatch_file, usecols=(6), unpack=True)
 
     dist_kpc_det, SNR_det, SNR_sim, dist_sim_det, det = np.loadtxt(match_file, usecols=(5, 12, 28, 37, 38), unpack=True)
 
@@ -40,7 +42,7 @@ def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, ma
         arg_all = dist_kpc_det[(SNR_det > i)]
         arg_conf = dist_kpc_det[(true_positive)&(SNR_det > i)]
         label = 'Detection distance (kpc)'
-        title = 'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i)
+        title = 'Purity wrt distance (kpc) with SNR(det)>{:.1f}'.format(i)
         bins = bins_dist
 
         over = (max(np.max(arg_all), np.max(arg_conf)) -
@@ -68,12 +70,12 @@ def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, ma
         ax2.set_title(title)
         ax2.legend()
         
-        dist_sim_det_kpc = [jj for ii, jj in enumerate(dist_sim_det_kpc) if SNR_det[ii] > i]
+        dist_sim_det_kpc = [jj for ii, jj in enumerate(dist_sim_det_kpc) if SNR_sim[ii] > i]
         arg = dist_kpc
         idxs = [ii for ii in idx_sim]
         # idxs = np.unique(idxs)
         label = 'd (kpc) simulated'
-        title = 'Completeness wrt distance from simulations for SNR(det)>{:.1f}'.format(i)
+        title = 'Completeness wrt distance from detections for SNR(det)>{:.1f}'.format(i)
         bins = 20 #bins_dist
         step = (np.max(arg) - np.min(arg)) / bins
         A = ax3.hist(dist_sim_det_kpc, bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
@@ -87,6 +89,67 @@ def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, ma
         compl = np.append(0., np.nan_to_num(completeness))
         ax3.set_xlabel(label)
         ax3.set_ylabel('# Detections matched to simulated clusters')
+        ax3.legend()
+        ax4.step(np.append(A[1][0] - step, A[1]),
+                 np.append(compl, 0), 'r', label='Data', where='mid')
+        ax4.set_xlabel(label)
+        ax4.set_ylabel('Completeness')
+        ax4.set_ylim([0, 1.1])
+        ax4.legend()
+        ax4.set_title(title)
+        plt.show()
+
+    for i in SNR_limit:
+        arg_all = SNR_det[(SNR_det > i)]
+        arg_conf = SNR_det[(true_positive)&(SNR_det > i)]
+        label = 'Detected SNR'
+        title = 'Purity wrt SNR with SNR(det)>{:.1f}'.format(i)
+        bins = np.linspace(0, np.max(SNR_sim), 50)
+
+        over = (max(np.max(arg_all), np.max(arg_conf)) -
+                min(np.min(arg_all), np.min(arg_conf))) * 0.1
+        min_ = min(np.min(arg_all), np.min(arg_conf)) - over
+        max_ = max(np.max(arg_all), np.max(arg_conf)) + over
+
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(30, 6))
+        A = ax1.hist(arg_all, bins=bins, range=(
+            np.min(arg_all), np.max(arg_all)), histtype='step', lw=2, label='All detections (not matched in      position)')
+        B = ax1.hist(arg_conf, bins=bins, range=(
+            np.min(arg_all), np.max(arg_all)), histtype='stepfilled', lw=2, label='Simulated clusters')
+        pureness = B[0] / A[0]
+
+        ax1.set_xlabel(label)
+        ax1.set_ylabel('Number of clusters detected')
+        ax1.set_xlim([min_, max_])
+        ax1.legend(loc=1)
+
+        ax2.step(A[1], np.append(pureness[0], pureness), 'b', lw=2, label='Data')
+        ax2.set_xlabel(label)
+        ax2.set_ylabel('Purity')
+        ax2.set_ylim([0, 1.2])
+        ax2.set_xlim([min_, max_])
+        ax2.set_title(title)
+        ax2.legend()
+
+        SNR_det_ = SNR_det[(true_positive)&(SNR_det > i)]
+        arg = SNR_det
+        idxs = [ii for ii in idx_sim]
+        # idxs = np.unique(idxs)
+        label = 'SNR detected'
+        title = 'Completeness wrt SNR from simulations for SNR(det)>{:.1f}'.format(i)
+        bins = 50 #bins_dist
+        step = (np.max(arg) - np.min(arg)) / bins
+        A = ax3.hist(SNR_det_[SNR_det_ > i], bins=bins, range=(np.min(arg), np.max(arg)), histtype='step',
+                     lw=2, color="b", label='Simulations')
+        B = ax3.hist(SNR, bins=bins, range=(np.min(arg), np.max(arg)), histtype='stepfilled',
+                     lw=2, color="orange", label='Detected clusters')
+        # completeness = np.ones(len(A[0])) - (A[0] / B[0])
+        completeness = A[0] / B[0]
+
+        completeness[completeness >= 1.] = 1.
+        compl = np.append(0., np.nan_to_num(completeness))
+        ax3.set_xlabel(label)
+        ax3.set_ylabel('# Clusters')
         ax3.legend()
         ax4.step(np.append(A[1][0] - step, A[1]),
                  np.append(compl, 0), 'r', label='Data', where='mid')
@@ -568,7 +631,7 @@ def puri_comp(input_detection_path, input_simulation_path, match_file, unmatch_f
 
     true_positive = (det == 1.)
 
-    SNR_range = np.arange(np.min(SNR_sim_all), np.max(SNR_sim_all), 5.)
+    SNR_range = np.arange(np.min(SNR_sim_all), 20., 0.5) #np.max(SNR_sim_all), 0.5)
 
     comp_wrt_SNR = np.zeros(len(SNR_range)-1)
     pur_wrt_SNR = np.zeros(len(SNR_range)-1)
@@ -970,7 +1033,7 @@ def  write_det_numbers(input_simulation_path, match_file, unmatch_file):
     print('Total of clusters undetected with more than 1 star: {:d}.'.format(len(ra_undet[n_f > 0.])))
 
 
-def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
+def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin):
     """Matches the detections and simulations, and writes matched and unmatched files.
 
     Parameters
@@ -1010,7 +1073,7 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, N_times_hlr):
     # sep_arcmin = N_times_hlr * hlr_arcmin
 
     # sep_arcmin_max = np.max(sep_arcmin)
-    sep_arcmin_max = 4.
+    sep_arcmin_max = dist2match_arcmin
 
     C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
     C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
@@ -1087,7 +1150,7 @@ def plot_masks(input_detection_path, mask_file, param2):
     d_slices_pc = data_sl["dist_pc"]
     mM_slices = 5 * np.log10(d_slices_pc) - 5.
 
-    gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+    # gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
 
     mag_g, err_g = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_g'], usecols=(0,1), unpack=True)
     mag_r, err_r = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_r'], usecols=(0,1), unpack=True)
@@ -1095,6 +1158,8 @@ def plot_masks(input_detection_path, mask_file, param2):
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
     for i in range(len(mM_slices)):
+        gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+
         err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(g+mM_slices[i], mag_r, err_r) ** 2.)
         gr[kind == 0.] -= err_gr[kind == 0.]
         gr[kind == 1.] += err_gr[kind == 1.]
@@ -1638,7 +1703,38 @@ def calc_comp_hist_Nstars(log10_Nstars_sim, log10_Nstars_det, log10_rad_sim, log
     return H_comp
 
 
-def calc_comp_hist(Mv_sim, Mv_det, log10_rad_sim, log10_rad_det):
+def calc_pure_hist(A_sim, A_det, B_sim, B_det, A_min, A_max, B_min, B_max, n_bins):
+    """Calculates purity 2D histogram regarding A and B properties.
+
+    Parameters
+    ----------
+    A_sim : list
+        A properties in simulated clusters.
+    A_det : list
+        A properties in detected clusters.
+    B_sim : list
+        B properties in simulated clusters.
+    B_det : list
+        B properties in detected clusters.
+    n_bins : scalar
+        bins in each axis of 2D plot.
+
+    Returns
+    -------
+    array-like
+        2d histogram of purity.
+    """
+
+    H_sim = np.histogram2d(A_sim, B_sim, bins=[n_bins, n_bins],
+                           range=[[A_min, A_max], [B_min, B_max]])
+    H_det = np.histogram2d(A_det, B_det, bins=[n_bins, n_bins],
+                           range=[[A_min, A_max], [B_min, B_max]])
+    H = H_sim[0] / H_det[0]
+
+    return H
+
+
+def calc_comp_hist(Mv_sim, Mv_det, log10_rad_sim, log10_rad_det, r_log_min=1, r_log_max=3.1):
     """Calculates completeness 2D histogram regarding absolute magnitude and half-light radii.
 
     Parameters
@@ -1657,7 +1753,7 @@ def calc_comp_hist(Mv_sim, Mv_det, log10_rad_sim, log10_rad_det):
     array-like
         2d histogram of detections in plane absolute magnitude x half-light radii.
     """
-    Mmin, Mmax, r_log_min, r_log_max = -11, 2, 1, 3.1
+    Mmin, Mmax = -11, 2
 
     n_bins = 13
 
@@ -1788,7 +1884,8 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
     mM_DG = 5 * np.log10(100*dist_kpc_DG)
 
-    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
+    # f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 16), dpi=100)
+    f, ((ax2, ax3)) = plt.subplots(1, 2, figsize=(16, 8), dpi=100)
 
     mM_sim = 5. * np.log10(dist_sim) - 5.
     mM_det = 5. * np.log10(dist_sim_det) - 5.
@@ -1797,7 +1894,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     cond_det = (mM_det > 10.) & (mM_det < 15.)
     cond_DG = (mM_DG > 10.) & (mM_DG < 15.)
     cond_GC = (mM_GC > 10.) & (mM_GC < 15.)
-
+    '''
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
     # ax1.set_title(r'10<$(m-M)_0$<15')
@@ -1821,7 +1918,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
         if cond_GC[i]:
             ax1.annotate(name_GC[i], (Mv_GC[i], np.log10(
                 rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
-
+    '''
     cond_sim = (mM_sim > 15.) & (mM_sim < 20.)
     cond_det = (mM_det > 15.) & (mM_det < 20.)
     cond_DG = (mM_DG > 15.) & (mM_DG < 20.)
@@ -1859,7 +1956,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
     H = calc_comp_hist(Mv_sim[cond_sim], Mv_det[cond_det], np.log10(radius_sim[cond_sim]),
                        np.log10(radius_det[cond_det]))
     # ax3.set_title(r'20<$(m-M)_0$<25')
-    ax3.set_title(r'100 kpc<$d$<1 Mpc')
+    ax3.set_title(r'100 kpc<$d$<250 kpc')
     ax3.set_xlim([Mmin, Mmax])
     ax3.set_ylim([r_log_min, r_log_max])
     ax3.set_xlabel(r'$M_V$')
@@ -1880,6 +1977,7 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
         if cond_GC[i]:
             ax3.annotate(name_GC[i], (Mv_GC[i], np.log10(
                 rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
+    '''
     cond_sim = (mM_sim > 25.) & (mM_sim < 30.)
     cond_det = (mM_det > 25.) & (mM_det < 30.)
     cond_DG = (mM_DG > 25.) & (mM_DG < 30.)
@@ -1908,13 +2006,70 @@ def full_completeness_distances(Mv_sim, Mv_det, radius_sim, radius_det, dist_sim
         if cond_GC[i]:
             ax4.annotate(name_GC[i], (Mv_GC[i], np.log10(
                 rhl_pc_GC[i])), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
-
+    '''
     cbaxes = f.add_axes([0.90, 0.126, 0.01, 0.755])
     cbar = f.colorbar(im3, cax=cbaxes, cmap=cmap,
                       orientation='vertical', label='Completeness')
     plt.suptitle('Completeness of detections')
     plt.subplots_adjust(wspace=0.2)
     plt.show()
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8), dpi=100)
+
+    dist_sim_kpc = dist_sim / 1000
+    dist_sim_det_kpc = dist_sim_det / 1000
+
+    H = calc_comp_hist(Mv_sim, Mv_det, dist_sim_kpc, dist_sim_det_kpc, np.min(dist_sim_kpc), np.max(dist_sim_kpc))
+    
+    ax.set_title(r'Completeness Mv versus distance(kpc)')
+    ax.set_xlim([Mmin, Mmax])
+    ax.set_ylim([np.min(dist_sim_kpc), np.max(dist_sim_kpc)])
+    ax.set_xlabel(r'$M_V$')
+    ax.set_ylabel(r'$d(kpc)$')
+    ax.grid(True, lw=0.2)
+    im1 = ax.imshow(np.flipud(H.T), extent=[Mmin, Mmax, np.min(dist_sim_kpc), np.max(dist_sim_kpc)], aspect='auto', vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
+    ax.scatter(Mv_GC, dist_kpc_GC, marker='x', color='k', label='GC')
+    ax.scatter(Mv_DG, dist_kpc_DG, marker='x', color='b', label='DG')
+    for i, j in enumerate(Mv_DG):
+        ax.annotate(name_DG[i], (Mv_DG[i], dist_kpc_DG[i]), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
+    for i, j in enumerate(Mv_GC):
+        ax.annotate(name_GC[i], (Mv_GC[i], dist_kpc_GC[i]), color='darkmagenta', bbox=dict(boxstyle="square", fc="w", ec='w', alpha=0.5))
+
+    cbaxes = fig.add_axes([0.90, 0.126, 0.01, 0.755])
+    cbar = fig.colorbar(im1, cax=cbaxes, cmap=cmap,
+                      orientation='vertical', label='Completeness')
+    plt.suptitle('Completeness of detections')
+    plt.subplots_adjust(wspace=0.2)
+    plt.show()
+
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8), dpi=100)
+
+    dist_sim_kpc = dist_sim / 1000
+    dist_sim_det_kpc = dist_sim_det / 1000
+
+    H = calc_pure_hist(Mv_sim, Mv_det, dist_sim_kpc, dist_sim_det_kpc, -10, 2, np.min(dist_sim_kpc), np.max(dist_sim_kpc), 13)
+    ax.set_title(r'Purity Mv versus distance(kpc)')
+    ax.set_xlim([Mmin, Mmax])
+    ax.set_ylim([np.min(dist_sim_kpc), np.max(dist_sim_kpc)])
+    ax.set_xlabel(r'$M_V$')
+    ax.set_ylabel(r'$d(kpc)$')
+    ax.grid(True, lw=0.2)
+    im1 = ax.imshow(np.flipud(H.T), extent=[Mmin, Mmax, np.min(dist_sim_kpc), np.max(dist_sim_kpc)], aspect     ='auto', vmin=0., vmax=1.00, interpolation='None', cmap=cmap)
+    ax.scatter(Mv_GC, dist_kpc_GC, marker='x', color='k', label='GC')
+    ax.scatter(Mv_DG, dist_kpc_DG, marker='x', color='b', label='DG')
+    for i, j in enumerate(Mv_DG):
+        ax.annotate(name_DG[i], (Mv_DG[i], dist_kpc_DG[i]), color='darkmagenta', bbox=dict(boxstyle="square     ", fc="w", ec='w', alpha=0.5))
+    for i, j in enumerate(Mv_GC):
+        ax.annotate(name_GC[i], (Mv_GC[i], dist_kpc_GC[i]), color='darkmagenta', bbox=dict(boxstyle="square     ", fc="w", ec='w', alpha=0.5))
+
+    cbaxes = fig.add_axes([0.90, 0.126, 0.01, 0.755])
+    cbar = fig.colorbar(im1, cax=cbaxes, cmap=cmap,
+                      orientation='vertical', label='Purity')
+    plt.suptitle('Purity of detections')
+    plt.subplots_adjust(wspace=0.2)
+    plt.show()
+
 
 
 def plot_pure(arg_all, arg_conf, label, title, bins=20):
@@ -2049,4 +2204,65 @@ def compare_filtering(file_sim_clus):
     plt.ylabel('#Clusters')
     plt.xlim([0,100])
     plt.show()
+
+def det_cmds(match_file, mask_file, input_simulation_path, input_detection_path, param2, sample):
+    """This function creates plots for the candidates that were not detected.
+
+    Parameters
+    ----------
+    unmatch_file : str
+        File name of the undetected clusters.
+    mask_file : str
+        File name of the isochronal masks.
+    input_simulation_path : str
+        Path to the file with the simulations table.
+    input_detection_path : str
+        Path to the file with the detection table.
+    param2 : dict
+        Dictionary with the parameters for the detection.
+    """
+    dist_det_, HPX64_, dist_sim_ = np.loadtxt(match_file, usecols=(5, 22, 37), unpack=True)
+
+    HPX64 = [HPX64_[i] for i in sample]
+    dist_det = [dist_det_[i] for i in sample]
+    dist_sim = [dist_sim_[i] for i in sample]
+
+    #gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+    #r = g - gr
+
+    mag_g, err_g = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_g'], usecols=(0,1), unpack=True)
+    mag_r, err_r = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_r'], usecols=(0,1), unpack=True)
+
+    mM_slices = [5 * np.log10(i) - 5. for i in dist_sim]
+    print(mM_slices, len(mM_slices))
+
+    for i in range(len(sample)):
+        gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+        r = g - gr
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5), dpi=150.)
+        ax.set_title('HPX: {:d}, Dist(sim): {:.1f} kpc, Dist(det): {:.1f} kpc'.format(int(HPX64[i]), dist_sim[i]/1000, dist_det[i]))
+        data = fits.getdata(input_simulation_path +
+                            '/hpx_cats_clean/' + str(int(HPX64[i])) + '.fits')
+        MAGG = data['mag_g_with_err']
+        MAGR = data['mag_r_with_err']
+        GC = data['GC']
+        ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
+                   color='lightgrey', label='MW star', s=0.5)
+        ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
+                   color='r', label='Cluster star', s=1.0)
+
+        err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(r+mM_slices[i], mag_r, err_r) ** 2.)
+        gr[kind == 0.] -= err_gr[kind == 0.]
+        gr[kind == 1.] += err_gr[kind == 1.]
+
+        ax.plot(gr, g + mM_slices[i], label='m-M detection={:.2f}'.format(mM_slices[i]), lw=1)
+        ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
+                    param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+        ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
+                    param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+        ax.set_xlabel(r'$g_0-r_0$')
+        ax.set_ylabel(r'$g_0$')
+        plt.legend(loc=1)
+        plt.tight_layout()
+        plt.show()
 
