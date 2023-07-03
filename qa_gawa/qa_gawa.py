@@ -1033,7 +1033,7 @@ def  write_det_numbers(input_simulation_path, match_file, unmatch_file):
     print('Total of clusters undetected with more than 1 star: {:d}.'.format(len(ra_undet[n_f > 0.])))
 
 
-def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin):
+def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_arcmin, comp_type):
     """Matches the detections and simulations, and writes matched and unmatched files.
 
     Parameters
@@ -1059,13 +1059,18 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     ra_det = data_det["ra"]
     dec_det = data_det["dec"]
 
-    data_sim = ascii.read(sim_file)
-    N_f_sim = data_sim["4-N_f"]
-    ra_sim = data_sim["9-ra"]
-    dec_sim = data_sim["10-dec"]
-    dist_pc = data_sim["15-dist"]
-    rexp_pc = data_sim["11-r_exp"]
-    hlr_arcmin = 60. * (180. / np.pi) * np.arctan(1.7 * rexp_pc / (dist_pc))
+    if comp_type != 'real':
+        data_sim = ascii.read(sim_file)
+        ra_sim = data_sim["9-ra"]
+        dec_sim = data_sim["10-dec"]
+        # dist_pc = data_sim["15-dist"]
+        # rexp_pc = data_sim["11-r_exp"]
+    else:
+        data_sim = ascii.read(sim_file)
+        ra_sim = data_sim["RA"]
+        dec_sim = data_sim["DEC"]
+        # dist_pc = data_sim["15-dist"]
+        # rexp_pc = data_sim["11-r_exp"]
 
     # cond_ = (N_f_sim >= 1)
     # ra_sim, dec_sim, dist_pc, rexp_pc, hlr_arcmin = ra_sim[cond_], dec_sim[cond_], dist_pc[cond_], rexp_pc[cond_], hlr_arcmin[cond_]
