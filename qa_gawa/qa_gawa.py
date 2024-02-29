@@ -605,9 +605,10 @@ def plot_pure_mM(input_detection_path, match_file, SNR_limit=[3,5,10]):
     m_M_det = 5 * np.log10(dist_kpc_det) + 10.
 
     for i in SNR_limit:
-        plot_pure(dist_kpc_det[(SNR_det > i)], dist_kpc_det[(true_positive)&(SNR_det > i)],
-                  'Detection distance (kpc)',
-                  'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i), bins_dist)
+        if len(dist_kpc_det[(true_positive)&(SNR_det > i)]) > 0:
+            plot_pure(dist_kpc_det[(SNR_det > i)], dist_kpc_det[(true_positive)&(SNR_det > i)],
+                      'Detection distance (kpc)',
+                      'Purity wrt distance (kpc) with SNR>{:.1f}'.format(i), bins_dist)
         #plot_pure(m_M_det, m_M_det[true_positive], 'Detection distance module',
         #          'Purity wrt Distance Modulus (detection)', bins_mM)
 
@@ -996,7 +997,7 @@ def SNR_hist(match_file, unmatch_file):
     plt.show()
 
 
-def  write_det_numbers(input_simulation_path, match_file, unmatch_file):
+def  write_det_numbers(input_simulation, match_file, unmatch_file, comp):
     """Writes a few numbers informing the user about the detection counts, simulations, etc.
 
     Parameters
@@ -1012,8 +1013,10 @@ def  write_det_numbers(input_simulation_path, match_file, unmatch_file):
     SNR_det, HPX64, SNR_sim = np.loadtxt(
         match_file, usecols=(12, 22, 28), unpack=True)
 
-    ra_sim = np.loadtxt(input_simulation_path +
-                        '/star_clusters_simulated.dat', usecols=(9), unpack=True)
+    if comp=='real':
+        ra_sim = np.loadtxt(input_simulation, usecols=(0), unpack=True)
+    else:
+        ra_sim = np.loadtxt(input_simulation, usecols=(9), unpack=True)
 
     n_f, ra_undet = np.loadtxt(unmatch_file, usecols=(4, 9), unpack=True)
 
@@ -1137,7 +1140,7 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     return idx_sim, idx_det, idx_not_det
 
 
-def plot_masks(input_detection_path, mask_file, param2):
+def plot_masks(input_detection_path, param2):
     """Plots all the masks in order to evaluate possible areas in CMD not covered by
     isochronal masks.
 
@@ -1155,15 +1158,13 @@ def plot_masks(input_detection_path, mask_file, param2):
     d_slices_pc = data_sl["dist_pc"]
     mM_slices = 5 * np.log10(d_slices_pc) - 5.
 
-    # gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
-
     mag_g, err_g = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_g'], usecols=(0,1), unpack=True)
     mag_r, err_r = np.loadtxt(param2['isochrone_masks'][param2['survey']]['magerr_file']['filter_r'], usecols=(0,1), unpack=True)
     
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(10, 6))
     for i in range(len(mM_slices)):
-        gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
+        gr, g, kind = np.loadtxt(param2['isochrone_masks'][param2['survey']]['model_file'], usecols=(0, 1, 2), unpack=True)
 
         err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(g+mM_slices[i], mag_r, err_r) ** 2.)
         gr[kind == 0.] -= err_gr[kind == 0.]
@@ -2094,11 +2095,11 @@ def plot_pure(arg_all, arg_conf, label, title, bins=20):
         Bins of the purity, by default 20
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
     over = (max(np.max(arg_all), np.max(arg_conf)) -
-            min(np.min(arg_all), np.min(arg_conf))) * 0.1
+        min(np.min(arg_all), np.min(arg_conf))) * 0.1
     min_ = min(np.min(arg_all), np.min(arg_conf)) - over
     max_ = max(np.max(arg_all), np.max(arg_conf)) + over
-    # try
     A = ax1.hist(arg_all, bins=bins, range=(
         np.min(arg_all), np.max(arg_all)), histtype='step', lw=2, label='All detections')
     B = ax1.hist(arg_conf, bins=bins, range=(
@@ -2108,7 +2109,6 @@ def plot_pure(arg_all, arg_conf, label, title, bins=20):
     ax1.set_ylabel('Number of clusters detected')
     ax1.set_xlim([min_, max_])
     ax1.legend(loc=2)
-
     ax2.step(bins, np.append(
         pureness[0], pureness), 'b', lw=2, label='Data')
     # ax2.step(A[1][0:-1],pureness, label='Data', color='k')
@@ -2242,32 +2242,33 @@ def det_cmds(match_file, mask_file, input_simulation_path, input_detection_path,
     print(mM_slices, len(mM_slices))
 
     for i in range(len(sample)):
-        gr, g, kind = np.loadtxt(mask_file, usecols=(0, 1, 2), unpack=True)
-        r = g - gr
-        fig, ax = plt.subplots(1, 1, figsize=(5, 5), dpi=150.)
-        ax.set_title('HPX: {:d}, Dist(sim): {:.1f} kpc, Dist(det): {:.1f} kpc'.format(int(HPX64[i]), dist_sim[i]/1000, dist_det[i]))
-        data = fits.getdata(input_simulation_path +
+        if HPX64[i] > 0:
+            gr, g, kind = np.loadtxt(param2['isochrone_masks'][param2['survey']]['model_file'], usecols=(0, 1, 2), unpack=True)
+            r = g - gr
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5), dpi=150.)
+            ax.set_title('HPX: {:d}, Dist(sim): {:.1f} kpc, Dist(det): {:.1f} kpc'.format(int(HPX64[i]), dist_sim[i]/1000, dist_det[i]))
+            data = fits.getdata(input_simulation_path +
                             '/hpx_cats_clean/' + str(int(HPX64[i])) + '.fits')
-        MAGG = data['mag_g_with_err']
-        MAGR = data['mag_r_with_err']
-        GC = data['GC']
-        ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
-                   color='lightgrey', label='MW star', s=0.5)
-        ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
-                   color='r', label='Cluster star', s=1.0)
+            MAGG = data['mag_g_with_err']
+            MAGR = data['mag_r_with_err']
+            GC = data['GC']
+            ax.scatter(MAGG[GC == 0] - MAGR[GC == 0], MAGG[GC == 0],
+                       color='lightgrey', label='MW star', s=0.5)
+            ax.scatter(MAGG[GC == 1] - MAGR[GC == 1], MAGG[GC == 1],
+                       color='r', label='Cluster star', s=1.0)
 
-        err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(r+mM_slices[i], mag_r, err_r) ** 2.)
-        gr[kind == 0.] -= err_gr[kind == 0.]
-        gr[kind == 1.] += err_gr[kind == 1.]
+            err_gr = np.sqrt(np.interp(g+mM_slices[i], mag_g, err_g) ** 2. + np.interp(r+mM_slices[i], mag_r, err_r) ** 2.)
+            gr[kind == 0.] -= err_gr[kind == 0.]
+            gr[kind == 1.] += err_gr[kind == 1.]
 
-        ax.plot(gr, g + mM_slices[i], label='m-M detection={:.2f}'.format(mM_slices[i]), lw=1)
-        ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
-                    param2['isochrone_masks'][param2['survey']]['mask_color_max'])
-        ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
-                    param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
-        ax.set_xlabel(r'$g_0-r_0$')
-        ax.set_ylabel(r'$g_0$')
-        plt.legend(loc=1)
-        plt.tight_layout()
-        plt.show()
+            ax.plot(gr, g + mM_slices[i], label='m-M detection={:.2f}'.format(mM_slices[i]), lw=1)
+            ax.set_xlim(param2['isochrone_masks'][param2['survey']]['mask_color_min'],
+                        param2['isochrone_masks'][param2['survey']]['mask_color_max'])
+            ax.set_ylim(param2['isochrone_masks'][param2['survey']]['mask_mag_max'],
+                        param2['isochrone_masks'][param2['survey']]['mask_mag_min'])
+            ax.set_xlabel(r'$g_0-r_0$')
+            ax.set_ylabel(r'$g_0$')
+            plt.legend(loc=1)
+            plt.tight_layout()
+            plt.show()
 
