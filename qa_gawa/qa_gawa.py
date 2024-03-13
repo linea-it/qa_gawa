@@ -789,7 +789,7 @@ def dist_dist(match_file):
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('Distances (kpc) from detections')
     plt.show()
-
+    '''
     fig = plt.figure(figsize=(16, 10))
     shift = (dist_init_kpc_det - dist_sim_kpc) / dist_sim_kpc
     plt.scatter(dist_sim_kpc, shift)
@@ -800,6 +800,7 @@ def dist_dist(match_file):
              1.2 * np.max(dist_sim_kpc)])
     plt.ylim([-2,2])
     plt.show()
+    '''
 
 
 def det_sky(input_simulation_path, match_file, unmatch_file):
@@ -1140,6 +1141,42 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
     return idx_sim, idx_det, idx_not_det
 
 
+def ang_dist_match_hist(match_file, param_max_match):
+    """Plots histogram of angular distances of matches.
+
+    Parameters
+    ----------
+    match_file : str
+       File name of the detected clusters.
+    """
+    ra_det, dec_det, ra_sim, dec_sim, rexp_sim, dist_sim, match = np.loadtxt(
+        match_file, usecols=(1, 2, 31, 32, 33, 37, 38), unpack=True)
+        
+    filter_det = (match == 1.)
+    
+    ra_det, dec_det, ra_sim, dec_sim, rexp_sim, dist_sim = ra_det[filter_det], dec_det[filter_det], ra_sim[filter_det], dec_sim[filter_det], rexp_sim[filter_det], dist_sim[filter_det]
+        
+    ang_hlr_arcmin = 60.*np.rad2deg(np.arctan(1.7 * rexp_sim / dist_sim))
+    
+    C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
+    C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
+    sep = C_sim.separation(C_det)
+    
+    ang_sep_arcmin = sep.arcmin
+
+    n_hlr = ang_sep_arcmin / ang_hlr_arcmin
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
+    ax1.hist(ang_sep_arcmin, bins=20, range=(0., param_max_match, histtype='step', color="r", lw=4, label='Matches')
+    ax2.hist(n_hlr, bins=20, histtype='step', color="silver", lw=2)
+    ax1.set_xlabel('Angular Distance (arcmin)')
+    ax2.set_ylabel('Angular Distance / r_{1/2}')
+    ax1.set_ylabel('# Clusters')
+    ax1.legend()
+
+    plt.show()
+
+
 def plot_masks(input_detection_path, param2):
     """Plots all the masks in order to evaluate possible areas in CMD not covered by
     isochronal masks.
@@ -1467,7 +1504,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     MAG_ABS_V, MAG_ABS_V_CLEAN, R_EXP, MASS = np.loadtxt(
         star_clusters_simulated, usecols=(2, 5, 11, 14), unpack=True)
 
-    f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 5))
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 5))
     ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0],
                 MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.2)
     ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
@@ -1488,8 +1525,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax1.set_xlabel(r"$r_{1/2}$ (pc))")
     ax1.set_xlim([np.min(1.7 * R_EXP[MAG_ABS_V < 0.0]) - 0.1,
                  np.max(1.7 * R_EXP[MAG_ABS_V < 0.0]) + 0.1])
-    ax1.set_ylim([np.max(MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0]) +
-                 0.1, np.min(MAG_ABS_V[MAG_ABS_V < 0.0]) - 0.1])
+    ax1.set_ylim([1, -14])
     ax1.set_xscale("log")
     ax1.legend()
 
@@ -1516,7 +1552,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax2.set_xscale("log")
     ax2.set_xlim([0.4, 4000])
     ax2.set_ylim([1, -14])
-
+    '''
     ax3.scatter(MASS, MAG_ABS_V, label='Sim', color='r', alpha=0.2)
     ax3.scatter(MASS, MAG_ABS_V_CLEAN, label='Sim filt',
                 color='darkred', alpha=0.2)
@@ -1529,6 +1565,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax3.set_ylim([np.max(MAG_ABS_V_CLEAN[MAG_ABS_V < 0.0]) +
                  0.1, np.min(MAG_ABS_V[MAG_ABS_V < 0.0]) - 0.1])
     ax3.legend()
+    '''
     plt.show()
     plt.close()
 

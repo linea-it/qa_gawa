@@ -24,5 +24,6 @@ from qa_gawa.qa_gawa import (
     det_cmds,
     hlr_hlr,
     compare_filtering,
-    plot_purity_completeness_SNR
+    plot_purity_completeness_SNR,
+    ang_dist_match_hist
 )
