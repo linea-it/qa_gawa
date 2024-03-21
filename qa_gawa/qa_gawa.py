@@ -753,7 +753,7 @@ def SNR_SNR(match_file):
     plt.show()
 
 
-def dist_dist(match_file):
+def dist_dist(match_file, SNR_min):
     """Plots distance of detections versus distance of simulations.
 
     Parameters
@@ -762,10 +762,12 @@ def dist_dist(match_file):
        File name of the detected clusters.
     """
 
-    dist_init_kpc_det, dist_err_kpc_det, SNR_sim, dist_sim, det = np.loadtxt(match_file,
+    dist_init_kpc_det, dist_err_kpc_det, SNR_det, SNR_sim, dist_sim, det = np.loadtxt(match_file,
                                                                         usecols=(
-                                                                            5, 6, 28, 37, 38),
+                                                                            5, 6, 12, 28, 37, 38),
                                                                         unpack=True)
+    cond = (SNR_det > SNR_min)
+    dist_init_kpc_det, dist_err_kpc_det, SNR_det, SNR_sim, dist_sim, det = dist_init_kpc_det[cond], dist_err_kpc_det[cond], SNR_det[cond], SNR_sim[cond], dist_sim[cond], det[cond]
     true_positive = (det == 1.)
 
     dist_sim_kpc = dist_sim / 1000
@@ -774,18 +776,18 @@ def dist_dist(match_file):
     #              yerr=dist_err_kpc_det[true_positive], xerr=None,  fmt='o', c='k')
     plt.plot(np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4),
              np.linspace(0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)), max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det)), 4), color='r')
-    dist_sim_kpc_bin = np.linspace(np.min(dist_sim_kpc), np.max(dist_sim_kpc), 6, endpoint=True)
-    #for ii in range(len(dist_sim_kpc_bin)-1):
-    #    data_x = (dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.
-    #    data_y = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_sim_kpc < dist_sim_kpc_bin[ii+1])]
+    dist_sim_kpc_bin = np.arange(0., 100*np.round(1 + np.max(dist_sim_kpc)/100), 100)
+    for ii in range(len(dist_sim_kpc_bin)-1):
+        data_x = (dist_sim_kpc_bin[ii] + dist_sim_kpc_bin[ii+1]) / 2.
+        data_y = dist_init_kpc_det[(dist_sim_kpc > dist_sim_kpc_bin[ii])&(dist_sim_kpc < dist_sim_kpc_bin[ii+1])]
 
-    #    plt.boxplot(data_y, 0, positions=[data_x], widths=50, bootstrap=None)
-    plt.scatter(dist_sim_kpc, dist_init_kpc_det)
+        plt.boxplot(data_y, 0, positions=[data_x], widths=50, bootstrap=None)
+    plt.scatter(dist_sim_kpc[SNR_det > SNR_min], dist_init_kpc_det[SNR_det > SNR_min])
     plt.xlim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
              1.2 * max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
     plt.ylim([0.8 * min(np.min(dist_sim_kpc), np.min(dist_init_kpc_det)),
              max(np.max(dist_sim_kpc), np.max(dist_init_kpc_det))])
-    plt.title('Comparing recovery distances')
+    plt.title('Comparing recovery distances with SNR from detection > {:.2f}'.format(SNR_min))
     plt.xlabel('Distances (kpc) from simulations')
     plt.ylabel('Distances (kpc) from detections')
     plt.show()
@@ -1166,11 +1168,11 @@ def ang_dist_match_hist(match_file, param_max_match):
 
     n_hlr = ang_sep_arcmin / ang_hlr_arcmin
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
-    ax1.hist(ang_sep_arcmin, bins=20, range=(0., param_max_match, histtype='step', color="r", lw=4, label='Matches')
-    ax2.hist(n_hlr, bins=20, histtype='step', color="silver", lw=2)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    ax1.hist(ang_sep_arcmin, bins=20, range=(0., param_max_match), histtype='step', color="r", lw=4, label='Matches')
+    ax2.hist(n_hlr, bins=20, range=(0, 40.), histtype='step', color="silver", lw=2)
     ax1.set_xlabel('Angular Distance (arcmin)')
-    ax2.set_ylabel('Angular Distance / r_{1/2}')
+    ax2.set_xlabel('Angular Distance / r_{1/2}')
     ax1.set_ylabel('# Clusters')
     ax1.legend()
 
@@ -1506,7 +1508,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
 
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 5))
     ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0],
-                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.2)
+                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.8)
     ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
                 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax1.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
@@ -1530,7 +1532,7 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
     ax1.legend()
 
     ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0],
-                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.2)
+                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.8)
     ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
                 0.0], color='darkred', label='Sim filt', alpha=0.2)
     ax2.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
