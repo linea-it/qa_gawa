@@ -1000,7 +1000,7 @@ def SNR_hist(match_file, unmatch_file):
     plt.show()
 
 
-def  write_det_numbers(input_simulation, match_file, unmatch_file, comp):
+def  write_det_numbers(input_simulation_path, match_file, unmatch_file, comp):
     """Writes a few numbers informing the user about the detection counts, simulations, etc.
 
     Parameters
@@ -1012,7 +1012,11 @@ def  write_det_numbers(input_simulation, match_file, unmatch_file, comp):
     unmatch_file : str
         File name of the undetected clusters.
     """
-
+    if comp != 'real':
+        input_simulation = input_simulation_path + '/star_clusters_simulated.dat'
+    else:
+        input_simulation = input_simulation_path + '/objects_in_ref_2023_updated.dat'
+    
     SNR_det, HPX64, SNR_sim = np.loadtxt(
         match_file, usecols=(12, 22, 28), unpack=True)
 
@@ -1026,8 +1030,26 @@ def  write_det_numbers(input_simulation, match_file, unmatch_file, comp):
     true_positive = (SNR_sim > 0.)
 
     print('Total of clusters simulated: {:d}.'.format(len(ra_sim)))
-    print('Total of clusters detected: {:d} (True Positives).'.format(
-        len(np.unique(HPX64[true_positive]))))
+    print('-------------------------------------------------------')
+    print('SNR        Detections        Matched         Unmatched')
+    print(' ')
+    print('{:d}       {:d}              {:d}            {:d}'.format(3, 
+                                                                     len(SNR_det[SNR_det > 3.]),
+                                                                     len(np.unique(HPX64[(true_positive) & (SNR_det > 3.)])), 
+                                                                     len(SNR_det[SNR_det > 3.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 3.)]))))
+    print(' ')
+    print('{:d}       {:d}              {:d}            {:d}'.format(5, 
+                                                                     len(SNR_det[SNR_det > 5.]),
+                                                                     len(np.unique(HPX64[(true_positive) & (SNR_det > 5.)])), 
+                                                                     len(SNR_det[SNR_det > 5.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 5.)]))))
+    print(' ')
+    print('{:d}       {:d}              {:d}            {:d}'.format(10, 
+        len(SNR_det[SNR_det > 10.]),
+        len(np.unique(HPX64[(true_positive) & (SNR_det > 10.)])), 
+        len(SNR_det[SNR_det > 10.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 10.)]))))
+    print('-------------------------------------------------------')
+    # print('Total of clusters detected: {:d} (True Positives).'.format(
+    #     len(np.unique(HPX64[true_positive]))))
     print('Minimum SNR detected: {:.4f}'.format(np.min(SNR_det)))
     print('Total of clusters detected with SNR > 3: {:d}.'.format(
         len(np.unique(HPX64[(true_positive) & (SNR_det > 3.)]))))
