@@ -10,6 +10,8 @@ from astropy.io import ascii
 import tabulate
 
 
+def show_input_data():
+
 def plot_purity_completeness_SNR(input_simulation_path, input_detection_path, match_file, unmatch_file, idx_sim, SNR_limit=[3,5,10]):
 
     SNR, r_exp_pc, dist = np.loadtxt(input_simulation_path + '/star_clusters_simulated.dat',
@@ -1033,17 +1035,17 @@ def  write_det_numbers(input_simulation_path, match_file, unmatch_file, comp):
     print('-------------------------------------------------------')
     print('SNR        Detections        Matched         Unmatched')
     print(' ')
-    print('{:d}       {:d}              {:d}            {:d}'.format(3, 
+    print('{:d}          {:d}               {:d}             {:d}'.format(3, 
                                                                      len(SNR_det[SNR_det > 3.]),
                                                                      len(np.unique(HPX64[(true_positive) & (SNR_det > 3.)])), 
                                                                      len(SNR_det[SNR_det > 3.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 3.)]))))
     print(' ')
-    print('{:d}       {:d}              {:d}            {:d}'.format(5, 
+    print('{:d}          {:d}               {:d}             {:d}'.format(5, 
                                                                      len(SNR_det[SNR_det > 5.]),
                                                                      len(np.unique(HPX64[(true_positive) & (SNR_det > 5.)])), 
                                                                      len(SNR_det[SNR_det > 5.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 5.)]))))
     print(' ')
-    print('{:d}       {:d}              {:d}            {:d}'.format(10, 
+    print('{:d}         {:d}               {:d}             {:d}'.format(10, 
         len(SNR_det[SNR_det > 10.]),
         len(np.unique(HPX64[(true_positive) & (SNR_det > 10.)])), 
         len(SNR_det[SNR_det > 10.]) - len(np.unique(HPX64[(true_positive) & (SNR_det > 10.)]))))
