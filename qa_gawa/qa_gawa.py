@@ -1507,12 +1507,12 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
         star_clusters_simulated, usecols=(2, 5, 11, 14), unpack=True)
 
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 5))
-    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0],
-                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.8)
-    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
-                0.0], color='darkred', label='Sim filt', alpha=0.2)
-    ax1.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
-                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='darkgreen', label='Undetected')
+    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 2.0],
+                MAG_ABS_V[MAG_ABS_V < 2.0], color='r', label='Sim', alpha=0.8)
+    ax1.scatter(1.7 * R_EXP[MAG_ABS_V < 2.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
+                2.0], color='darkred', label='Sim filt', alpha=0.2)
+    ax1.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 2.0],
+                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 2.0], color='darkgreen', label='Undetected')
     ax1.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax1.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
     for i, j in enumerate(R_EXP):
@@ -1525,18 +1525,18 @@ def general_plots(star_clusters_simulated, unmatch_clusters_file):
         ax1.annotate(name_GC[i], (rhl_pc_GC[i], Mv_GC[i]))
     ax1.set_ylabel("M(V)")
     ax1.set_xlabel(r"$r_{1/2}$ (pc))")
-    ax1.set_xlim([np.min(1.7 * R_EXP[MAG_ABS_V < 0.0]) - 0.1,
-                 np.max(1.7 * R_EXP[MAG_ABS_V < 0.0]) + 0.1])
+    ax1.set_xlim([np.min(1.7 * R_EXP[MAG_ABS_V < 2.0]) - 0.1,
+                 np.max(1.7 * R_EXP[MAG_ABS_V < 2.0]) + 0.1])
     ax1.set_ylim([1, -14])
     ax1.set_xscale("log")
     ax1.legend()
 
-    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0],
-                MAG_ABS_V[MAG_ABS_V < 0.0], color='r', label='Sim', alpha=0.8)
-    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 0.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
-                0.0], color='darkred', label='Sim filt', alpha=0.2)
-    ax2.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 0.0],
-                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 0.0], color='darkgreen', label='Undetected')
+    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 2.0],
+                MAG_ABS_V[MAG_ABS_V < 2.0], color='r', label='Sim', alpha=0.8)
+    ax2.scatter(1.7 * R_EXP[MAG_ABS_V < 2.0], MAG_ABS_V_CLEAN[MAG_ABS_V <
+                2.0], color='darkred', label='Sim filt', alpha=0.2)
+    ax2.scatter(1.7 * R_EXP_un[MAG_ABS_V_un < 2.0],
+                MAG_ABS_V_CLEAN_un[MAG_ABS_V_un < 2.0], color='darkgreen', label='Undetected')
     ax2.scatter(rhl_pc_DG, Mv_DG, color='b', marker='x', label='DG')
     ax2.scatter(rhl_pc_GC, Mv_GC, color='k', marker='x', label='GC')
     ax2.set_xlabel(r"$r_{1/2}$ (pc))")
