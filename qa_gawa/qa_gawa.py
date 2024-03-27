@@ -12,6 +12,178 @@ import json
 from pathlib import Path
 
 
+def show_matched_data(param_file, match_file):
+    """" Makes a series of plots showing the distribution of simulated clusters (along real
+    objects) in terms of distances, angular sizes, absolute magnitudes, etc.
+
+    Parameters
+    ----------
+    star_clusters_simulated : str
+        File name of table with features of simulated clusters.
+    results_path : str
+        Folder to files with simulated clusters.
+    mmin : float
+        Minimum in range of magnitude.
+    mmax : float
+        Maximum in range of magnitude.
+    cmin : float
+        Minimum in range of color.
+    cmax : float
+        Maximum in range of color.
+    """
+    with open(param_file) as fstream:
+        param = json.load(fstream)
+    
+    cmap = mpl.cm.get_cmap("inferno")
+    cmap.set_under("dimgray")
+    cmap.set_bad("black")
+
+    globals().update(param)
+
+    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, SNR_sim, r_exp, dist = np.loadtxt(
+        star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 6, 11, 15), unpack=True
+    )
+    
+    dist_kpc_det, SNR_det, HPX64, N_f, MV_det, SNR_sim, rexp, dist_sim_det, detected = np.loadtxt(match_file, usecols=(5, 12, 22, 26, 27, 28, 33, 37, 38), unpack=True)
+
+    cond = (detected == 1.)
+
+    dist_kpc_det, SNR_det, HPX64, N_f, MV_det, SNR_sim, rexp, dist_sim_det, detected = dist_kpc_det[cond], SNR_det[cond], HPX64[cond], N_f[cond], MV_det[cond], SNR_sim[cond], rexp[cond], dist_sim_det[cond], detected[cond]
+
+    HPX64_un, idx_HPX64_un = np.unique(HPX64, return_index=True)
+    
+    MV_det_un = [MV_det[ii] for ii in idx_HPX64_un]
+    
+    rexp_un = [rexp[ii] for ii in idx_HPX64_un]
+
+    N_f_un = [N_f[ii] for ii in idx_HPX64_un]
+
+    print('Total clusters simulated: {:d}'.format(len(hp_sample_un)))
+
+    '''
+    for i in hp_sample_un:
+        clus_filepath = Path(results_path, "%s_clus.dat" % int(i))
+        plot_filepath = Path(output_plots, "%s_cmd.png" % int(i))
+        plot_filt_filepath = Path(output_plots, "%s_filt_cmd.png" % int(i))
+
+        if not clus_filepath.exists():
+            continue
+
+        star = np.loadtxt(clus_filepath)
+
+        plt.scatter(star[:, 2]-star[:, 4], star[:, 2], color='r')
+        plt.title('HPX ' + str(int(i)) + ', N=' + str(len(star[:, 2])))
+        plt.ylim([mmax, mmin])
+        plt.xlim([cmin, cmax])
+        plt.xlabel('mag1-mag2')
+        plt.ylabel('mag1')
+        # plt.savefig(str(int(i)) + '_cmd.png')
+        plt.show()
+        # plt.close()
+
+        h1, xedges, yedges, im1 = plt.hist2d(
+            star[:, 2] - star[:, 4],
+            star[:, 2],
+            bins=50,
+            range=[[cmin, cmax], [mmin, mmax]],
+            # norm=mpl.colors.LogNorm(),
+            cmap=cmap,
+        )
+        plt.clf()
+        plt.title("HPX " + str(int(i)) + ", N=" + str(len(star[:, 2])))
+        im1 = plt.imshow(
+            h1.T,
+            interpolation="None",
+            origin="lower",
+            vmin=0.1,
+            vmax=np.max(h1),
+            extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+            aspect="auto",
+            cmap=cmap,
+        )
+        plt.ylim([mmax, mmin])
+        plt.xlim([cmin, cmax])
+        plt.xlabel("mag1-mag2")
+        plt.ylabel("mag1")
+        plt.colorbar(im1, cmap=cmap, orientation="vertical",
+                     label="stars per bin")
+        plt.savefig(plot_filepath)
+        plt.show()
+        plt.close()
+    '''
+    name_DG, ra_DG, dec_DG, dist_kpc_DG, Mv_DG, rhl_pc_DG, FeH_DG, name_GC, R_MW_GC, FeH_GC, mM_GC, Mv_GC, rhl_pc_GC, dist_kpc_GC, rhl_arcmin_GC = read_real_cat()
+
+    hp_sample_un, NSTARS, MAG_ABS_V, NSTARS_CLEAN, MAG_ABS_V_CLEAN, RA_pix, DEC_pix, r_exp, ell, pa, dist = np.loadtxt(
+        star_clusters_simulated, usecols=(0, 1, 2, 4, 5, 9, 10, 11, 12, 13, 15), unpack=True)
+
+    ang_size_DG = 60. * (180. / np.pi) * \
+        np.arctan(rhl_pc_DG / (1000. * dist_kpc_DG))
+    ang_size = 60 * np.rad2deg(np.arctan(1.7 * r_exp / dist))
+
+    RHL_PC_SIM = 1.7 * r_exp
+
+    MW_center_distance_DG_kpc = radec2GCdist(ra_DG, dec_DG, dist_kpc_DG)
+
+    f, ((ax1, ax2, ax3)) = plt.subplots(1, 3, figsize=(20, 4))
+
+    ax1.hist(Mv_DG, bins=20, range=(-16, 2.0),
+             histtype="step", label="DG", color="g", alpha=0.5,
+             density=True, #weights=np.repeat(0.9*len(MAG_ABS_V_CLEAN)/len(Mv_DG), len(Mv_DG)),
+             lw=2)
+    ax1.hist(Mv_GC, bins=20, range=(-16, 2.0),
+             histtype="step", label="GC", color="b",
+             density=True, #weights=np.repeat(0.9*len(MAG_ABS_V_CLEAN)/len(Mv_GC), len(Mv_GC)),
+             lw=2)
+    ax1.hist(MAG_ABS_V, bins=20, range=(-16, 2.0), histtype="stepfilled",
+             label="Sim", color="r", ls="--", alpha=0.5, lw=2,
+             density=True)
+    ax1.hist(MAG_ABS_V_CLEAN, bins=20, range=(-16, 2.0), histtype="step",
+             label="Sim filt", color="darkred", ls="--", alpha=0.5, density=True, stacked=True)
+    ax1.hist(MV_det_un, bins=20, range=(-16, 2.0), histtype="stepfilled",
+             label="Matched systems", color="k", ls="--", alpha=0.5, density=True, stacked=True)
+    ax1.set_xlabel(r"$M_V$")
+    ax1.set_ylabel("Fraction")
+    ax1.legend(loc=2)
+    ax1.set_title('Histogram of MV, Matched systems')
+    weights = np.ones_like(rhl_pc_DG) / len(rhl_pc_DG)
+    ax2.hist(np.log10(rhl_pc_DG), bins=20, histtype="step",
+             range=(0.0, 3.6), label="DG", color="g", alpha=0.5,
+             weights=weights, lw=2)
+
+    weights = np.ones_like(rhl_pc_GC) / len(rhl_pc_GC)
+
+    ax2.hist(np.log10(rhl_pc_GC), bins=20, histtype="step",
+             range=(.0, 3.6), label="GC", color="b",
+             weights=weights, lw=2)
+    weights = np.ones_like(RHL_PC_SIM) / len(RHL_PC_SIM)
+
+    ax2.hist(np.log10(RHL_PC_SIM), bins=20, histtype="stepfilled", range=(
+             .0, 3.60), label="Sim", color="red", ls="--", alpha=0.5,
+             weights=weights, lw=2)
+    weights = np.ones_like(rexp_un) / len(rexp_un)
+
+    ax2.hist(np.log10(rexp_un), bins=20, histtype="stepfilled", range=(
+             .0, 3.60), label="Matched systems", color="k", ls="--", alpha=0.5,
+             weights=weights, lw=2)
+
+    ax2.set_ylabel("Fraction")
+    ax2.set_xlabel(r"$log(r_{1/2}$[pc])")
+    ax2.set_xlim([0.0, 3.6])
+    ax2.legend(loc=1)
+    # ax8.set_xscale('log')
+    # ax8.set_yscale('log')
+    ax2.set_title(r'Histogram of $log_{10} r_{1/2}$ (parsecs), Matched systems')
+    ax3.hist(N_f_un, bins=50, histtype="stepfilled", range=(
+	     .0, 1000.), label="Matched systems", color="k", ls="--", alpha=0.5,
+	     weights=weights, lw=2)
+    ax3.set_xlabel('N stars')
+    ax3.set_ylabel('fraction of clusters detected (Nstars < 1000)')
+    f.tight_layout()
+    plt.subplots_adjust(top=0.92)
+
+    plt.show()
+
+
 def show_input_data(param_file):
     """" Makes a series of plots showing the distribution of simulated clusters (along real
     objects) in terms of distances, angular sizes, absolute magnitudes, etc.
@@ -1287,14 +1459,11 @@ def matching_sim_det(sim_file, det_file, match_file, unmatch_file, dist2match_ar
 
     # sep_arcmin = N_times_hlr * hlr_arcmin
 
-    # sep_arcmin_max = np.max(sep_arcmin)
-    sep_arcmin_max = dist2match_arcmin
-
     C_sim = SkyCoord(ra=ra_sim*u.degree, dec=dec_sim*u.degree)
     C_det = SkyCoord(ra=ra_det*u.degree, dec=dec_det*u.degree)
 
     idx_sim, idx_det, d2d, d3d = C_det.search_around_sky(
-        C_sim, sep_arcmin_max*u.arcmin)
+        C_sim, dist2match_arcmin*u.arcmin)
     '''
     cond = [d2d[ii] < sep_arcmin[jj]*u.arcmin for ii, jj in enumerate(idx_sim)]
     idx_sim = [idx_sim[ii] for ii, jj in enumerate(idx_sim) if cond[ii]]
@@ -1355,8 +1524,8 @@ def ang_dist_match_hist(match_file, param_max_match):
     match_file : str
        File name of the detected clusters.
     """
-    ra_det, dec_det, ra_sim, dec_sim, rexp_sim, dist_sim, match = np.loadtxt(
-        match_file, usecols=(1, 2, 31, 32, 33, 37, 38), unpack=True)
+    ra_det, dec_det, HPX64, ra_sim, dec_sim, rexp_sim, dist_sim, match = np.loadtxt(
+        match_file, usecols=(1, 2, 22, 31, 32, 33, 37, 38), unpack=True)
         
     filter_det = (match == 1.)
     
@@ -1372,14 +1541,21 @@ def ang_dist_match_hist(match_file, param_max_match):
 
     n_hlr = ang_sep_arcmin / ang_hlr_arcmin
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-    ax1.hist(ang_sep_arcmin, bins=20, range=(0., param_max_match), histtype='step', color="r", lw=4, label='Matches')
-    ax2.hist(n_hlr, bins=20, range=(0, 40.), histtype='step', color="silver", lw=2)
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+    N = ax1.hist(ang_sep_arcmin, bins=20, range=(0., param_max_match), histtype='step', color="r", lw=4, label='Matches')
+    N2 = ax2.hist(n_hlr, bins=20, range=(0, 40.), histtype='step', color="silver", lw=2)
     ax1.set_xlabel('Angular Distance (arcmin)')
     ax2.set_xlabel('Angular Distance / r_{1/2}')
     ax1.set_ylabel('# Clusters')
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
+    ax1.set_ylim([0.9, 1.1*np.max(N[0])])
+    ax2.set_ylim([0.9, 1.1*np.max(N2[0])])
+    values, counts = np.unique(HPX64[match == 1.], return_counts=True)
     ax1.legend()
-
+    ax3.step(values, counts)
+    ax3.set_xlabel('HPX64')
+    ax3.set_ylabel('N detections')
     plt.show()
 
 
@@ -1547,9 +1723,8 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
 
     MW_center_distance_DG_kpc = radec2GCdist(ra_DG, dec_DG, dist_kpc_DG)
 
-    f, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8),
-        (ax9, ax10)) = plt.subplots(5, 2, figsize=(15, 23))
-
+    f, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(15, 5))
+    '''
     ax1.hist(dist_kpc_DG, bins=np.linspace(0, 2. * np.max(dist) / 1000,
              20), label='DG', color='b', alpha=0.5, histtype='stepfilled')
     ax1.hist(dist_kpc_GC, bins=np.linspace(0, 2. * np.max(dist) / 1000,
@@ -1629,36 +1804,36 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
     ax6.set_ylabel("N stars")
     ax6.legend()
     ax6.set_title('Visible Mass X Star counts')
-
-    ax7.hist(Mv_DG, bins=20, range=(-16, 0.0),
+    '''
+    ax1.hist(Mv_DG, bins=20, range=(-16, 2.0),
              histtype="stepfilled", label="DG", color="b", alpha=0.5)
-    ax7.hist(Mv_GC, bins=20, range=(-16, 0.0),
+    ax1.hist(Mv_GC, bins=20, range=(-16, 2.0),
              histtype="step", label="GC", color="k")
-    ax7.hist(MAG_ABS_V, bins=20, range=(-16, 0.0), histtype="step",
+    ax1.hist(MAG_ABS_V, bins=20, range=(-16, 2.0), histtype="step",
              label="Sim", color="r", ls="--", alpha=0.5)
-    ax7.hist(MAG_ABS_V_CLEAN, bins=20, range=(-16, 0.0), histtype="stepfilled",
+    ax1.hist(MAG_ABS_V_CLEAN, bins=20, range=(-16, 2.0), histtype="stepfilled",
              label="Sim filt", color="darkred", ls="--", alpha=0.5)
-    ax7.hist(MAG_ABS_V_CLEAN_un, bins=20, range=(-16, 0.0),
-             histtype="stepfilled", label="Undet", color="darkgreen", ls="--", lw=2)
-    ax7.set_xlabel(r"$M_V$")
-    ax7.set_ylabel("N")
-    ax7.legend(loc=2)
-    ax7.set_title('Histogram of Absolute Magnitude (V band)')
+    # ax1.hist(MAG_ABS_V_CLEAN_un, bins=20, range=(-16, 2.0),
+    #          histtype="stepfilled", label="Undet", color="darkgreen", ls="--", lw=2)
+    ax1.set_xlabel(r"$M_V$")
+    ax1.set_ylabel("N")
+    ax1.legend(loc=2)
+    ax1.set_title('Histogram of Absolute Magnitude (V band)')
 
-    ax8.hist(rhl_pc_DG, bins=20, histtype="stepfilled",
-             range=(10, 2400), label="DG", color="b", alpha=0.5)
-    ax8.hist(rhl_pc_GC, bins=20, histtype="step",
-             range=(10, 2400), label="GC", color="k")
-    ax8.hist(RHL_PC_SIM, bins=20, histtype="stepfilled", range=(
-        10, 2400), label="Sim", color="r", ls="--", alpha=0.5)
-    ax8.hist(RHL_PC_SIM_un, bins=20, histtype="stepfilled", range=(
-        10, 2400), label="Undet", color="darkgreen", ls="--", lw=2)
-    ax8.set_xlabel(r"$r_{1/2}$[pc]")
-    ax8.legend(loc=1)
+    ax2.hist(np.log10(rhl_pc_DG), bins=20, histtype="stepfilled",
+             range=(0.0, 3.60), label="DG", color="b", alpha=0.5)
+    ax2.hist(np.log10(rhl_pc_GC), bins=20, histtype="step",
+             range=(0.0, 3.60), label="GC", color="k")
+    ax2.hist(np.log10(RHL_PC_SIM), bins=20, histtype="stepfilled", range=(
+        0.0, 3.6), label="Sim", color="r", ls="--", alpha=0.5)
+    # ax2.hist(np.log10(RHL_PC_SIM_un), bins=20, histtype="stepfilled", range=(
+    #     0.0, 3.6), label="Undet", color="darkgreen", ls="--", lw=2)
+    ax2.set_xlabel(r"$log_{10}r_{1/2}$[pc]")
+    ax2.legend(loc=1)
     # ax8.set_xscale('log')
-    ax8.set_yscale('log')
-    ax8.set_title(r'Histogram of $r_{1/2}$ (parsecs)')
-
+    ax2.set_yscale('log')
+    ax2.set_title(r'Histogram of $log_{10}\ r_{1/2}$ (parsecs)')
+    '''
     ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V)), bins=20, range=(-3, 1.0),
              histtype="stepfilled", label="Sim", color="r", ls="--", alpha=0.5)
     ax9.hist(np.repeat(FeH_iso, len(MAG_ABS_V_un)), bins=20, range=(-3, 1.0),
@@ -1686,6 +1861,7 @@ def plots_ang_size(star_clusters_simulated, unmatch_file, FeH_iso):
 
     plt.suptitle("Physical features of 58 Dwarf Gal + 152 GC + " + str(len(hp_sample)) +
                  " Simulations + " + str(len(hp_sample_un)) + " Undetected", fontsize=16)
+    '''
     f.tight_layout()
     plt.subplots_adjust(top=0.92)
     plt.show()
