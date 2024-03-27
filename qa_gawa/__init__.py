@@ -26,6 +26,7 @@ from qa_gawa.qa_gawa import (
     compare_filtering,
     show_input_data,
     show_matched_data,
+    show_unmatched_data,
     plot_purity_completeness_SNR,
     ang_dist_match_hist
 )
